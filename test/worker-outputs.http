@@ -1,0 +1,77 @@
+@baseUrl = http://localhost:3001
+@token = Bearer TOKENNI_SHU_YERGA_QOYING
+@outputId = 1
+@workerId = 2
+@productId = 1
+@departmentId = 1
+
+
+### Login - javobdan tokenni yuqoridagi @token ga qo'ying
+POST {{baseUrl}}/users/login
+Content-Type: application/json
+
+{
+  "username": "muhammad",
+  "password": "12345678"
+}
+
+
+### Ish yozuvlari ro'yxati
+GET {{baseUrl}}/worker-outputs?offset=0&limit=20&sort_by=worked_at&sort_order=desc
+Authorization: {{token}}
+
+
+### Ish yozuvlari qidiruv/filter
+GET {{baseUrl}}/worker-outputs?worker_id={{workerId}}&product_id={{productId}}&department_id={{departmentId}}&date_from=2026-06-01&date_to=2026-06-30
+Authorization: {{token}}
+
+
+### Summary - ishchi bo'yicha
+GET {{baseUrl}}/worker-outputs/summary?group_by=worker&date_from=2026-06-01&date_to=2026-06-30
+Authorization: {{token}}
+
+
+### Summary - bo'lim bo'yicha
+GET {{baseUrl}}/worker-outputs/summary?group_by=department&date_from=2026-06-01&date_to=2026-06-30
+Authorization: {{token}}
+
+
+### Summary - mahsulot bo'yicha
+GET {{baseUrl}}/worker-outputs/summary?group_by=product&date_from=2026-06-01&date_to=2026-06-30
+Authorization: {{token}}
+
+
+### Bitta ish yozuvi
+GET {{baseUrl}}/worker-outputs/{{outputId}}
+Authorization: {{token}}
+
+
+### Ish yozuvi qo'shish (super_admin/admin)
+POST {{baseUrl}}/worker-outputs
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "worker_id": {{workerId}},
+  "product_id": {{productId}},
+  "department_id": {{departmentId}},
+  "quantity": 25,
+  "worked_at": "2026-06-24",
+  "note": "Tikuv bo'limi smena yakuni"
+}
+
+
+### Ish yozuvini o'zgartirish (super_admin/admin)
+PATCH {{baseUrl}}/worker-outputs/{{outputId}}
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "quantity": 30,
+  "note": "Miqdor tuzatildi"
+}
+
+
+### Ish yozuvini o'chirish (super_admin/admin)
+DELETE {{baseUrl}}/worker-outputs/{{outputId}}
+Authorization: {{token}}

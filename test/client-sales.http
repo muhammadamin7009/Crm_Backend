@@ -1,0 +1,30 @@
+@baseUrl = http://localhost:3001
+@token = Bearer TOKENNI_SHU_YERGA_QOYING
+@saleId = 1
+@clientId = 1
+@productId = 1
+
+### Savdo ro'yxati
+GET {{baseUrl}}/client-sales?offset=0&limit=20
+Authorization: {{token}}
+
+### Balance
+GET {{baseUrl}}/client-sales/balance?client_id={{clientId}}
+Authorization: {{token}}
+
+### Summary
+GET {{baseUrl}}/client-sales/summary?group_by=client
+Authorization: {{token}}
+
+### Savdo qo'shish
+POST {{baseUrl}}/client-sales
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "client_id": {{clientId}},
+  "product_id": {{productId}},
+  "quantity": 2,
+  "paid_amount": 0,
+  "note": "Test savdo"
+}

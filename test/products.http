@@ -1,0 +1,135 @@
+@baseUrl = http://localhost:3001
+@token = Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6InN1cGVyX2FkbWluIiwiaWF0IjoxNzgyMTU2MDg2LCJleHAiOjE3ODIzMjg4ODZ9.vQVsRG6LFpHHn7jA9tFnPxuEUaQgYHGjAqgcPj6VL94
+@categoryId = 1
+@productId = 1
+
+
+### Login - javobdan tokenni yuqoridagi @token ga qo'ying
+POST {{baseUrl}}/users/login
+Content-Type: application/json
+
+{
+  "username": "muhammad",
+  "password": "12345678"
+}
+
+
+### Kategoriya yaratish (super_admin/admin)
+POST {{baseUrl}}/categories
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "name": "Barsofka",
+  "description": "Kuzgi va qishki mahsulotlar",
+  "is_active": true
+}
+
+
+### Kategoriyalar ro'yxati
+GET {{baseUrl}}/categories?q=&is_active=true&offset=0&limit=20&sort_by=created_at&sort_order=desc
+Authorization: {{token}}
+
+
+### Bitta kategoriya
+GET {{baseUrl}}/categories/{{categoryId}}
+Authorization: {{token}}
+
+
+### Kategoriyani tahrirlash (super_admin/admin)
+PATCH {{baseUrl}}/categories/{{categoryId}}
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "name": "Tapochka",
+  "description": "Yozgi tapochkalar"
+}
+
+
+### Kategoriyani o'chirish (super_admin/admin)
+DELETE {{baseUrl}}/categories/{{categoryId}}
+Authorization: {{token}}
+
+
+### Mahsulot yaratish (super_admin/admin)
+POST {{baseUrl}}/products
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "category_id": {{categoryId}},
+  "name": "Barsofka",
+  "model": "B_2401",
+  "sku": "B_2401",
+  "color": "Black",
+  "unit": "dona",
+  "description": "Ecco koja",
+  "purchase_price": 280000,
+  "sale_price": 320000,
+  "is_active": true
+}
+
+
+### Mahsulotlar ro'yxati
+GET {{baseUrl}}/products?offset=0&limit=20&sort_by=created_at&sort_order=desc
+Authorization: {{token}}
+
+
+### Mahsulot qidirish
+GET {{baseUrl}}/products?q=B_2401&offset=0&limit=20
+Authorization: {{token}}
+
+
+### Mahsulotlarni filterlash
+GET {{baseUrl}}/products?category_id={{categoryId}}&color=black&is_active=true&min_price=100000&max_price=400000&sort_by=sale_price&sort_order=asc&offset=0&limit=20
+Authorization: {{token}}
+
+
+### Bitta mahsulot va uning rasmlari
+GET {{baseUrl}}/products/{{productId}}
+Authorization: {{token}}
+
+
+### Mahsulotni tahrirlash (super_admin/admin)
+PATCH {{baseUrl}}/products/{{productId}}
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "color": "Blue",
+  "sale_price": 350000,
+  "is_active": true
+}
+
+
+### Mahsulotni o'chirish (super_admin/admin)
+DELETE {{baseUrl}}/products/{{productId}}
+Authorization: {{token}}
+
+@imageId = 1
+
+
+### Mahsulotga rasm yuklash (super_admin/admin)
+# "product_image" field nomi backend bilan bir xil bo'lishi shart.
+# Fayl yo'lini o'zingizdagi rasmga almashtiring.
+POST {{baseUrl}}/products/{{productId}}/images
+Authorization: {{token}}
+Content-Type: multipart/form-data; boundary=ProductImageBoundary
+
+--ProductImageBoundary
+Content-Disposition: form-data; name="product_image"; filename="product.jpg"
+Content-Type: image/jpeg
+
+< C:\Users\hp\Pictures\product.jpg
+--ProductImageBoundary--
+
+
+### Mahsulot rasmini primary qilish (super_admin/admin)
+PATCH {{baseUrl}}/products/{{productId}}/images/{{imageId}}/primary
+Authorization: {{token}}
+
+
+### Mahsulot rasmini o'chirish (super_admin/admin)
+DELETE {{baseUrl}}/products/{{productId}}/images/{{imageId}}
+Authorization: {{token}}

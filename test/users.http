@@ -1,0 +1,78 @@
+@baseUrl = http://localhost:3001
+@token = Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Miwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzgyMDY2NzUzLCJleHAiOjE3ODIyMzk1NTN9.8zOKkPo592wK0e2N6Z5ClsfedKimr15Uibn3Jc7rV7M
+@userId = 1
+
+
+### Login user
+POST {{baseUrl}}/users/login
+Content-Type: application/json
+
+{
+  "username": "aziz5555",
+  "password": "aziz1234"
+}
+
+
+### Add user (register)
+POST {{baseUrl}}/users
+Content-Type: application/json
+
+{
+  "first_name": "Abdulaziz",
+  "last_name": "Ahmadaliyev",
+  "phone": "+998900550603",
+  "username": "aziz1234",
+  "password": "aziz1234"
+}
+
+### 4) admin oddiy user yaratadi (staff create)
+POST {{baseUrl}}/users/stuff
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "first_name": "Client",
+  "last_name": "A",
+  "username": "client_4",
+  "password": "12345678",
+  "phone": "+998909995888",
+  "role": "worker"
+}
+
+
+### List users (admin/super_admin bo'lsa ishlaydi)
+GET {{baseUrl}}/users
+Authorization: {{token}}
+
+
+### Show user
+GET {{baseUrl}}/users/{{userId}}
+Authorization: {{token}}
+
+###
+GET {{baseUrl}}/users/me
+Authorization: {{token}}
+
+
+### Edit user
+PATCH {{baseUrl}}/users/{{userId}}
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "username": "muhammad7009"
+}
+
+### Edit user
+PATCH {{baseUrl}}/users/me
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "username": "muhammad1998"
+}
+
+
+### Delete user
+DELETE {{baseUrl}}/users/{{userId}}
+Authorization: {{token}}

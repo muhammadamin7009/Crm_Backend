@@ -1,0 +1,26 @@
+@baseUrl = http://localhost:3001
+@token = Bearer TOKENNI_SHU_YERGA_QOYING
+@paymentId = 1
+@clientId = 1
+@saleId = 1
+
+### Client to'lovlari
+GET {{baseUrl}}/client-payments?offset=0&limit=20
+Authorization: {{token}}
+
+### Summary
+GET {{baseUrl}}/client-payments/summary?group_by=client
+Authorization: {{token}}
+
+### Qarzdan to'lov kiritish
+POST {{baseUrl}}/client-payments
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "client_id": {{clientId}},
+  "client_sale_id": {{saleId}},
+  "amount": 1700000,
+  "paid_at": "2026-06-24",
+  "note": "Qarzdan to'lov"
+}

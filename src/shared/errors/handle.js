@@ -8,11 +8,11 @@ const {
 } = require("./index");
 
 /**
- * 
- * @param {Error} err 
- * @param {express.Request } req 
- * @param {express.Response} res 
- * @param {express.NextFunction} next 
+ *
+ * @param {Error} err
+ * @param {express.Request } req
+ * @param {express.Response} res
+ * @param {express.NextFunction} next
  */
 module.exports = (err, req, res, next) => {
   let status = 500;

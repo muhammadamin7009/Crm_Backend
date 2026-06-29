@@ -8,6 +8,9 @@ const workerOutputsRoute = require("./modules/worker-outputs/_api");
 const workerPaymentsRoute = require("./modules/worker-payments/_api");
 const clientSalesRoute = require("./modules/client-sales/_api");
 const clientPaymentsRoute = require("./modules/client-payments/_api");
+const workerAdvancesRoute = require("./modules/worker-advances/_api");
+const materialPurchasesRoute = require("./modules/material-purchases/_api");
+const employeesRoute = require("./modules/employees/_api");
 const handleError = require("./shared/errors/handle");
 const cors = require("cors");
 
@@ -25,6 +28,9 @@ app.use(workerOutputsRoute);
 app.use(workerPaymentsRoute);
 app.use(clientSalesRoute);
 app.use(clientPaymentsRoute);
+app.use(workerAdvancesRoute);
+app.use(materialPurchasesRoute);
+app.use(employeesRoute);
 
 app.use(handleError);
 

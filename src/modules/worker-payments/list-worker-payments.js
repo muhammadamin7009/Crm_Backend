@@ -55,7 +55,8 @@ const listWorkerPayments = async (filters, actor) => {
   const totalQuery = query
     .clone()
     .clearSelect()
-    .sum({ total_paid: "wp.amount" })
+    .sum({ cash_paid: "wp.amount" })
+    .sum({ advance_deducted: "wp.advance_deduction" })
     .first();
 
   const [workerPayments, { count }, totals] = await Promise.all([
@@ -71,7 +72,9 @@ const listWorkerPayments = async (filters, actor) => {
   return {
     worker_payments: workerPayments,
     totals: {
-      total_paid: Number(totals.total_paid || 0),
+      total_paid: Number(totals.cash_paid || 0) + Number(totals.advance_deducted || 0),
+      cash_paid: Number(totals.cash_paid || 0),
+      advance_deducted: Number(totals.advance_deducted || 0),
     },
     pageInfo: {
       total: Number(count),

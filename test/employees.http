@@ -1,0 +1,23 @@
+@baseUrl = http://localhost:3001
+@token = Bearer TOKENNI_SHU_YERGA_QOYING
+
+### Lavozim
+POST {{baseUrl}}/positions
+Authorization: {{token}}
+Content-Type: application/json
+
+{ "name": "Ish boshqaruvchi", "description": "Korxona ishlarini boshqaradi" }
+
+### Hodim profili
+POST {{baseUrl}}/employees
+Authorization: {{token}}
+Content-Type: application/json
+
+{ "user_id": 2, "position_id": 1, "hired_at": "2026-06-29" }
+
+### Maosh kelishuvi
+POST {{baseUrl}}/employee-agreements
+Authorization: {{token}}
+Content-Type: application/json
+
+{ "employee_id": 1, "payment_type": "fixed_salary", "fixed_amount": 4000000, "payment_period": "monthly", "effective_from": "2026-07-01" }

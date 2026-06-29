@@ -13,6 +13,8 @@ const selectPaymentFields = (query) =>
     db.raw("CONCAT(w.first_name, ' ', w.last_name) as worker_name"),
     "w.username as worker_username",
     "wp.amount",
+    "wp.advance_deduction",
+    db.raw("(wp.amount + wp.advance_deduction) as settled_amount"),
     "wp.payment_type",
     "wp.paid_at",
     "wp.period_from",

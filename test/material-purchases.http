@@ -1,0 +1,30 @@
+@baseUrl = http://localhost:3001
+@token = Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6InN1cGVyX2FkbWluIiwiaWF0IjoxNzgyNzQzNDg2LCJleHAiOjE3ODI5MTYyODZ9.bJX3rfQOvvNo__I0qDgkv9N3jRzteS0oXYfT4FlIlng
+
+### Supplier qo'shish
+POST {{baseUrl}}/suppliers
+Authorization: {{token}}
+Content-Type: application/json
+
+{ "name": "Shoe-maker", "opening_balance": 100000 }
+
+### Homashyo qo'shish
+POST {{baseUrl}}/raw-materials
+Authorization: {{token}}
+Content-Type: application/json
+
+{ "name": "4-li ip", "unit": "dona" }
+
+### Xarid
+POST {{baseUrl}}/material-purchases
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "supplier_id": 1,
+  "paid_amount": 0,
+  "items": [
+    { "raw_material_id": 1, "quantity": 20, "unit_price": 4500 },
+    { "raw_material_id": 2, "quantity": 10, "unit_price": 5000 }
+  ]
+}

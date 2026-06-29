@@ -8,7 +8,8 @@ const PAYMENT_TYPES = ["salary", "advance", "bonus", "other"];
 
 const paymentFields = {
   worker_id: Joi.number().integer().positive(),
-  amount: Joi.number().precision(2).positive(),
+  amount: Joi.number().precision(2).min(0),
+  advance_deduction: Joi.number().precision(2).min(0),
   payment_type: Joi.string().valid(...PAYMENT_TYPES),
   paid_at: Joi.date().iso(),
   period_from: Joi.date().iso().allow(null),
@@ -21,6 +22,7 @@ exports.createWorkerPaymentSchema = {
     ...paymentFields,
     worker_id: paymentFields.worker_id.required(),
     amount: paymentFields.amount.required(),
+    advance_deduction: paymentFields.advance_deduction.default(0),
     payment_type: paymentFields.payment_type.default("salary"),
   }),
 };

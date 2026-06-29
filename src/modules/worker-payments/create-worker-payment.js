@@ -2,6 +2,7 @@ const db = require("../../db");
 const { BadRequestError } = require("../../shared/errors");
 const { getWorker } = require("./helpers");
 const { getFormattedPayment } = require("./format-payment");
+const { getAdvanceBalance } = require("../worker-advances/helpers");
 
 const formatMoney = (value) =>
   new Intl.NumberFormat("uz-UZ").format(Number(value || 0));
@@ -47,11 +48,14 @@ const getRemainingBalance = async ({ workerId, periodFrom, periodTo, excludePaym
 
   const [earned, paid] = await Promise.all([
     earnedQuery.sum({ total_earned: "total_amount" }).first(),
-    paidQuery.sum({ total_paid: "amount" }).first(),
+    paidQuery
+      .sum({ cash_paid: "amount" })
+      .sum({ advance_deducted: "advance_deduction" })
+      .first(),
   ]);
 
   const totalEarned = Number(earned.total_earned || 0);
-  const totalPaid = Number(paid.total_paid || 0);
+  const totalPaid = Number(paid.cash_paid || 0) + Number(paid.advance_deducted || 0);
 
   return {
     total_earned: totalEarned,
@@ -63,6 +67,7 @@ const getRemainingBalance = async ({ workerId, periodFrom, periodTo, excludePaym
 const assertPaymentDoesNotExceedBalance = async ({
   workerId,
   amount,
+  advanceDeduction = 0,
   periodFrom,
   periodTo,
   excludePaymentId,
@@ -74,7 +79,9 @@ const assertPaymentDoesNotExceedBalance = async ({
     excludePaymentId,
   });
 
-  if (Number(amount) > balance.remaining) {
+  const settledAmount = Number(amount) + Number(advanceDeduction);
+
+  if (settledAmount > balance.remaining) {
     if (balance.remaining <= 0) {
       const overpaid = Math.abs(balance.remaining);
       const detail = overpaid
@@ -96,9 +103,26 @@ const createWorkerPayment = async (body, actor) => {
   assertPeriod(body);
   await getWorker(Number(body.worker_id));
 
+  if (body.payment_type === "advance") {
+    throw new BadRequestError("Avansni alohida 'Avans berish' orqali kiriting");
+  }
+
+  const advanceDeduction = Number(body.advance_deduction || 0);
+  if (Number(body.amount || 0) + advanceDeduction <= 0) {
+    throw new BadRequestError("Naqd to'lov yoki avans ushlanmasi kiritilishi kerak");
+  }
+
+  if (advanceDeduction > 0) {
+    const advanceBalance = await getAdvanceBalance(Number(body.worker_id));
+    if (advanceDeduction > advanceBalance.remaining_advance) {
+      throw new BadRequestError(`Avansdan ushlanma qolgan avansdan oshmasin. Qolgan avans: ${formatMoney(advanceBalance.remaining_advance)} so'm`);
+    }
+  }
+
   await assertPaymentDoesNotExceedBalance({
     workerId: Number(body.worker_id),
     amount: Number(body.amount),
+    advanceDeduction,
     periodFrom: body.period_from || null,
     periodTo: body.period_to || null,
   });
@@ -107,6 +131,7 @@ const createWorkerPayment = async (body, actor) => {
     .insert({
       worker_id: Number(body.worker_id),
       amount: Number(body.amount),
+      advance_deduction: advanceDeduction,
       payment_type: body.payment_type || "salary",
       paid_at: body.paid_at || db.fn.now(),
       period_from: body.period_from || null,

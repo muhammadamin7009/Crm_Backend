@@ -5,6 +5,8 @@ const {
   assertPeriod,
 } = require("./create-worker-payment");
 const { getFormattedPayment } = require("./format-payment");
+const { getAdvanceBalance } = require("../worker-advances/helpers");
+const { BadRequestError } = require("../../shared/errors");
 
 const updateWorkerPayment = async (body, { id }) => {
   const existing = await getExistingPayment(id);
@@ -16,6 +18,9 @@ const updateWorkerPayment = async (body, { id }) => {
   const periodTo =
     body.period_to !== undefined ? body.period_to : existing.period_to;
   const amount = body.amount !== undefined ? Number(body.amount) : Number(existing.amount);
+  const advanceDeduction = body.advance_deduction !== undefined
+    ? Number(body.advance_deduction)
+    : Number(existing.advance_deduction || 0);
 
   assertPeriod({
     period_from: periodFrom,
@@ -23,9 +28,19 @@ const updateWorkerPayment = async (body, { id }) => {
   });
   await getWorker(workerId);
 
+  if ((body.payment_type || existing.payment_type) === "advance") {
+    throw new BadRequestError("Avansni alohida 'Avans berish' orqali kiriting");
+  }
+  const advanceBalance = await getAdvanceBalance(workerId);
+  const availableAdvance = advanceBalance.remaining_advance + Number(existing.advance_deduction || 0);
+  if (advanceDeduction > availableAdvance) {
+    throw new BadRequestError("Avansdan ushlanma qolgan avansdan oshmasin");
+  }
+
   await assertPaymentDoesNotExceedBalance({
     workerId,
     amount,
+    advanceDeduction,
     periodFrom,
     periodTo,
     excludePaymentId: id,
@@ -36,6 +51,7 @@ const updateWorkerPayment = async (body, { id }) => {
     .update({
       worker_id: workerId,
       amount,
+      advance_deduction: advanceDeduction,
       payment_type: body.payment_type || existing.payment_type,
       paid_at: body.paid_at || existing.paid_at,
       period_from: periodFrom,

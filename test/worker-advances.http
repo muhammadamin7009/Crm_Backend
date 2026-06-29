@@ -1,0 +1,19 @@
+@baseUrl = http://localhost:3001
+@token = Bearer TOKENNI_SHU_YERGA_QOYING
+@workerId = 1
+
+### Avans balansi
+GET {{baseUrl}}/worker-advances/balance?worker_id={{workerId}}
+Authorization: {{token}}
+
+### Avans berish
+POST {{baseUrl}}/worker-advances
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "worker_id": {{workerId}},
+  "amount": 1000000,
+  "given_at": "2026-06-29",
+  "note": "Ishchiga berilgan avans"
+}

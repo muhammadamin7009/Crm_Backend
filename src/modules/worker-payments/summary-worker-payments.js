@@ -50,7 +50,8 @@ const summaryWorkerPayments = async (filters, actor) => {
     .clearSelect()
     .select(...group.select)
     .count({ payments_count: "wp.id" })
-    .sum({ total_paid: "wp.amount" })
+    .sum({ cash_paid: "wp.amount" })
+    .sum({ advance_deducted: "wp.advance_deduction" })
     .groupBy(group.group)
     .orderBy(group.order, group_by === "day" ? "desc" : "asc");
 
@@ -59,7 +60,9 @@ const summaryWorkerPayments = async (filters, actor) => {
     summary: rows.map((row) => ({
       ...row,
       payments_count: Number(row.payments_count || 0),
-      total_paid: Number(row.total_paid || 0),
+      total_paid: Number(row.cash_paid || 0) + Number(row.advance_deducted || 0),
+      cash_paid: Number(row.cash_paid || 0),
+      advance_deducted: Number(row.advance_deducted || 0),
     })),
   };
 };

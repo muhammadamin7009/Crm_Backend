@@ -1,6 +1,7 @@
 const db = require("../../db");
 const { BadRequestError, ForbiddenError } = require("../../shared/errors");
 const { getWorker, isManager } = require("./helpers");
+const { getAdvanceBalance } = require("../worker-advances/helpers");
 
 const getWorkerBalance = async ({ worker_id, date_from, date_to }, actor) => {
   if (date_from && date_to && new Date(date_from) > new Date(date_to)) {
@@ -36,13 +37,19 @@ const getWorkerBalance = async ({ worker_id, date_from, date_to }, actor) => {
     paidQuery.andWhere("wp.paid_at", "<=", date_to);
   }
 
-  const [earned, paid] = await Promise.all([
+  const [earned, paid, advanceBalance] = await Promise.all([
     earnedQuery.clone().sum({ total_earned: "wo.total_amount" }).first(),
-    paidQuery.clone().sum({ total_paid: "wp.amount" }).first(),
+    paidQuery.clone()
+      .sum({ cash_paid: "wp.amount" })
+      .sum({ advance_deducted: "wp.advance_deduction" })
+      .first(),
+    getAdvanceBalance(workerId),
   ]);
 
   const totalEarned = Number(earned.total_earned || 0);
-  const totalPaid = Number(paid.total_paid || 0);
+  const cashPaid = Number(paid.cash_paid || 0);
+  const advanceDeducted = Number(paid.advance_deducted || 0);
+  const totalPaid = cashPaid + advanceDeducted;
 
   return {
     worker_id: workerId,
@@ -51,6 +58,10 @@ const getWorkerBalance = async ({ worker_id, date_from, date_to }, actor) => {
     balance: {
       total_earned: totalEarned,
       total_paid: totalPaid,
+      cash_paid: cashPaid,
+      advance_deducted: advanceDeducted,
+      total_advance: advanceBalance.total_advance,
+      remaining_advance: advanceBalance.remaining_advance,
       remaining: totalEarned - totalPaid,
     },
   };

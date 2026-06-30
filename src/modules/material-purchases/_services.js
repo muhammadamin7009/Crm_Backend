@@ -102,12 +102,17 @@ const updateSupplier = async (body, id) => {
 };
 const deleteSupplier = async (id) => {
   await getSupplier(id);
-  const used = await db("material_purchases")
-    .where({ supplier_id: id, is_deleted: false })
-    .first();
-  if (used)
+  const [purchase, payment] = await Promise.all([
+    db("material_purchases")
+      .where({ supplier_id: id, is_deleted: false })
+      .first(),
+    db("supplier_payments")
+      .where({ supplier_id: id, is_deleted: false })
+      .first(),
+  ]);
+  if (purchase || payment)
     throw new BadRequestError(
-      "Ta'minotchida xarid tarixi bor, o'chirib bo'lmaydi",
+      "Ta'minotchida xarid yoki to'lov tarixi bor, o'chirib bo'lmaydi",
     );
   await db("suppliers")
     .where({ id })

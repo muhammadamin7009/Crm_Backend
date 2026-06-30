@@ -9,7 +9,7 @@ const registration = async ({
   password,
   user_image,
   phone = null,
-}) => {
+}, company) => {
   // 1️⃣ username unique tekshiramiz
   const existing = await db("users")
     .where({ username })
@@ -34,6 +34,7 @@ const registration = async ({
       role: "customer",
       phone,
       is_deleted: false,
+      company_id: company.id,
     })
     .returning([
       "id",

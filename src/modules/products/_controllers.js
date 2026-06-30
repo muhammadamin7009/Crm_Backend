@@ -36,7 +36,7 @@ const createProduct = async (req, res, next) => {
 const getProducts = async (req, res, next) => {
   try {
     httpValidator({ query: req.query }, listProductsSchema);
-    const result = await listProductsService(req.query);
+    const result = await listProductsService(req.query, req.user);
     res.status(200).json(result);
   } catch (error) {
     next(error);

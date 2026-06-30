@@ -11,6 +11,9 @@ const clientPaymentsRoute = require("./modules/client-payments/_api");
 const workerAdvancesRoute = require("./modules/worker-advances/_api");
 const materialPurchasesRoute = require("./modules/material-purchases/_api");
 const employeesRoute = require("./modules/employees/_api");
+const financeRoute = require("./modules/finance/_api");
+const tenantContext = require("./shared/tenant-context");
+const platformRoute = require("./modules/platform/_api");
 const handleError = require("./shared/errors/handle");
 const cors = require("cors");
 
@@ -19,18 +22,23 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 app.use("/uploads", express.static("uploads"));
+app.use("/api/platform", platformRoute);
 
-app.use(usersRoute);
-app.use(categoriesRoute);
-app.use(productsRoute);
-app.use(departmentsRoute);
-app.use(workerOutputsRoute);
-app.use(workerPaymentsRoute);
-app.use(clientSalesRoute);
-app.use(clientPaymentsRoute);
-app.use(workerAdvancesRoute);
-app.use(materialPurchasesRoute);
-app.use(employeesRoute);
+const tenantRouter = express.Router({ mergeParams: true });
+tenantRouter.use(usersRoute);
+tenantRouter.use(categoriesRoute);
+tenantRouter.use(productsRoute);
+tenantRouter.use(departmentsRoute);
+tenantRouter.use(workerOutputsRoute);
+tenantRouter.use(workerPaymentsRoute);
+tenantRouter.use(clientSalesRoute);
+tenantRouter.use(clientPaymentsRoute);
+tenantRouter.use(workerAdvancesRoute);
+tenantRouter.use(materialPurchasesRoute);
+tenantRouter.use(employeesRoute);
+tenantRouter.use(financeRoute);
+
+app.use("/api/:companySlug", tenantContext, tenantRouter);
 
 app.use(handleError);
 

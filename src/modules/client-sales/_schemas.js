@@ -23,6 +23,26 @@ exports.createClientSaleSchema = {
   }),
 };
 
+exports.createBulkClientSaleSchema = {
+  body: Joi.object({
+    client_id: saleFields.client_id.required(),
+    paid_amount: saleFields.paid_amount,
+    sold_at: saleFields.sold_at,
+    note: saleFields.note,
+    items: Joi.array()
+      .items(
+        Joi.object({
+          product_id: saleFields.product_id.required(),
+          quantity: saleFields.quantity.required(),
+          unit_price: saleFields.unit_price,
+        }),
+      )
+      .min(1)
+      .max(100)
+      .required(),
+  }),
+};
+
 exports.updateClientSaleSchema = {
   params: idParams,
   body: Joi.object(saleFields).min(1),

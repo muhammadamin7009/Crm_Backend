@@ -4,7 +4,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const config = require("../../shared/config");
 
-const login = async ({ username, password }) => {
+const login = async ({ username, password }, company) => {
   const existing = await db("users")
     .where({ username, is_deleted: false })
     .select(
@@ -16,6 +16,7 @@ const login = async ({ username, password }) => {
       "first_name",
       "last_name",
       "phone",
+      "company_id",
     )
     .first();
 
@@ -33,6 +34,8 @@ const login = async ({ username, password }) => {
     {
       id: existing.id,
       role: existing.role,
+      company_id: existing.company_id,
+      company_slug: company.slug,
     },
     config.jwt.secret,
     { expiresIn: "2d" },
@@ -47,6 +50,9 @@ const login = async ({ username, password }) => {
     last_name: existing.last_name,
     user_image: existing.user_image,
     phone: existing.phone,
+    company_id: existing.company_id,
+    company_slug: company.slug,
+    company_name: company.name,
   };
 
   return {

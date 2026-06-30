@@ -85,6 +85,7 @@ exports.showUserSchema = {
 exports.getUsersSchema = {
   query: Joi.object({
     q: Joi.string().allow(""),
+    role: Joi.string().valid(...ROLE_ENUM).allow(""),
     limit: Joi.number().integer().min(1).max(100).default(20),
     offset: Joi.number().integer().min(0).default(0),
     sort_by: Joi.string()

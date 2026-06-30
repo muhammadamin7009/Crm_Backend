@@ -2,13 +2,22 @@ const router = require("express").Router();
 const { isLoggedIn, hasRole } = require("../../shared/auth");
 const {
   createClientSale,
+  createBulkClientSale,
   getClientSales,
   getClientSale,
   getClientSalesSummary,
   getClientBalance,
+  getMyClientAccount,
   patchClientSale,
   removeClientSale,
 } = require("./_controllers");
+
+router.get(
+  "/client-sales/me",
+  isLoggedIn,
+  hasRole("client"),
+  getMyClientAccount,
+);
 
 router.get(
   "/client-sales",
@@ -33,6 +42,12 @@ router.get(
   isLoggedIn,
   hasRole("super_admin", "admin"),
   getClientSale,
+);
+router.post(
+  "/client-sales/bulk",
+  isLoggedIn,
+  hasRole("super_admin", "admin"),
+  createBulkClientSale,
 );
 router.post(
   "/client-sales",

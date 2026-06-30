@@ -13,6 +13,17 @@ const formatSaleQuery = () =>
       "cpa.client_sale_id",
       "cs.id",
     )
+    .leftJoin(
+      db("client_returns")
+        .where({ is_deleted: false })
+        .select("client_sale_id")
+        .sum({ returned_amount: "amount" })
+        .sum({ returned_quantity: "quantity" })
+        .groupBy("client_sale_id")
+        .as("cra"),
+      "cra.client_sale_id",
+      "cs.id",
+    )
     .leftJoin("users as cl", "cl.id", "cs.client_id")
     .leftJoin("products as p", "p.id", "cs.product_id")
     .leftJoin("users as c", "c.id", "cs.created_by")
@@ -21,6 +32,7 @@ const formatSaleQuery = () =>
 const selectSaleFields = (query) =>
   query.select(
     "cs.id",
+    "cs.batch_id",
     "cs.client_id",
     db.raw("CONCAT(cl.first_name, ' ', cl.last_name) as client_name"),
     "cl.username as client_username",
@@ -31,11 +43,13 @@ const selectSaleFields = (query) =>
     "cs.quantity",
     "cs.unit_price",
     "cs.total_amount",
+    db.raw("COALESCE(cra.returned_quantity, 0) as returned_quantity"),
+    db.raw("COALESCE(cra.returned_amount, 0) as returned_amount"),
     "cs.paid_amount",
     db.raw("COALESCE(cpa.extra_paid_amount, 0) as extra_paid_amount"),
     db.raw("(cs.paid_amount + COALESCE(cpa.extra_paid_amount, 0)) as current_paid_amount"),
-    db.raw("(cs.total_amount - cs.paid_amount - COALESCE(cpa.extra_paid_amount, 0)) as remaining_debt"),
-    db.raw("(cs.total_amount - cs.paid_amount - COALESCE(cpa.extra_paid_amount, 0)) as debt_amount"),
+    db.raw("(cs.total_amount - COALESCE(cra.returned_amount, 0) - cs.paid_amount - COALESCE(cpa.extra_paid_amount, 0)) as remaining_debt"),
+    db.raw("(cs.total_amount - COALESCE(cra.returned_amount, 0) - cs.paid_amount - COALESCE(cpa.extra_paid_amount, 0)) as debt_amount"),
     "cs.debt_amount as initial_debt_amount",
     "cs.sold_at",
     "cs.note",

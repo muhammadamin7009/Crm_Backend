@@ -2,6 +2,7 @@ const db = require("../../db");
 
 const listUsers = async ({
   q,
+  role,
   limit = 20,
   offset = 0,
   sort_by = "created_at",
@@ -30,6 +31,8 @@ const listUsers = async ({
         .orWhereILike("phone", `%${q}%`);
     });
   }
+
+  if (role) query.andWhere("role", role);
 
   const countQuery = query
     .clone()

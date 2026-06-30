@@ -19,7 +19,18 @@ const isLoggedIn = (req, res, next) => {
     req.user = {
       id: decoded.id,
       role: decoded.role,
+      company_id: decoded.company_id,
+      company_slug: decoded.company_slug,
     };
+
+    if (
+      !decoded.company_id ||
+      !req.company ||
+      Number(decoded.company_id) !== Number(req.company.id) ||
+      decoded.company_slug !== req.company.slug
+    ) {
+      throw new UnauthorizedError("Token boshqa korxonaga tegishli");
+    }
 
     next();
   } catch (error) {

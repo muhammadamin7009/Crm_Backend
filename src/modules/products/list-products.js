@@ -21,7 +21,7 @@ const listProducts = async ({
   offset = 0,
   sort_by = "created_at",
   sort_order = "desc",
-}) => {
+}, actor) => {
   if (
     min_price !== undefined &&
     max_price !== undefined &&
@@ -90,8 +90,12 @@ const listProducts = async ({
     countQuery,
   ]);
 
+  const canSeePurchasePrice = ["super_admin", "admin"].includes(actor?.role);
+
   return {
-    products,
+    products: canSeePurchasePrice
+      ? products
+      : products.map(({ purchase_price, ...product }) => product),
     pageInfo: {
       total: Number(count),
       offset: Number(offset),

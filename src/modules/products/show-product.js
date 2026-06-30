@@ -37,7 +37,8 @@ const showProduct = async ({ id }, actor) => {
   const canSeeDepartmentPrices = MANAGER_ROLES.includes(actor?.role);
 
   if (!canSeeDepartmentPrices) {
-    return { product: { ...product, images } };
+    const { purchase_price, ...publicProduct } = product;
+    return { product: { ...publicProduct, images } };
   }
 
   const departmentPrices = await db("departments as d")

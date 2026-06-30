@@ -7,19 +7,32 @@ const {
   listClientSalesSchema,
   clientSalesSummarySchema,
   clientBalanceSchema,
+  createBulkClientSaleSchema,
 } = require("./_schemas");
 const createClientSaleService = require("./create-client-sale");
+const createBulkClientSaleService = require("./create-bulk-client-sale");
 const listClientSalesService = require("./list-client-sales");
 const updateClientSaleService = require("./update-client-sale");
 const deleteClientSaleService = require("./delete-client-sale");
 const summaryClientSalesService = require("./summary-client-sales");
 const getClientBalanceService = require("./get-client-balance");
+const getMyClientAccountService = require("./get-my-client-account");
 const { getFormattedSale } = require("./format-sale");
 
 const createClientSale = async (req, res, next) => {
   try {
     httpValidator({ body: req.body }, createClientSaleSchema);
     const result = await createClientSaleService(req.body, req.user);
+    res.status(201).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const createBulkClientSale = async (req, res, next) => {
+  try {
+    httpValidator({ body: req.body }, createBulkClientSaleSchema);
+    const result = await createBulkClientSaleService(req.body, req.user);
     res.status(201).json(result);
   } catch (error) {
     next(error);
@@ -66,6 +79,16 @@ const getClientBalance = async (req, res, next) => {
   }
 };
 
+const getMyClientAccount = async (req, res, next) => {
+  try {
+    httpValidator({ query: req.query }, listClientSalesSchema);
+    const result = await getMyClientAccountService(req.user, req.query);
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 const patchClientSale = async (req, res, next) => {
   try {
     httpValidator({ body: req.body, params: req.params }, updateClientSaleSchema);
@@ -90,10 +113,12 @@ const removeClientSale = async (req, res, next) => {
 
 module.exports = {
   createClientSale,
+  createBulkClientSale,
   getClientSales,
   getClientSale,
   getClientSalesSummary,
   getClientBalance,
+  getMyClientAccount,
   patchClientSale,
   removeClientSale,
 };

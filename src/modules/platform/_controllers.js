@@ -1,0 +1,9 @@
+const validate = require("../../shared/http-validator");
+const schemas = require("./_schemas");
+const s = require("./_services");
+exports.login = async (req,res,next)=>{try{validate({body:req.body},schemas.login);res.json(await s.login(req.body));}catch(e){next(e)}};
+exports.listCompanies = async (_req,res,next)=>{try{res.json(await s.listCompanies());}catch(e){next(e)}};
+exports.createCompany = async (req,res,next)=>{try{validate({body:req.body},schemas.companyCreate);res.status(201).json(await s.createCompany(req.body));}catch(e){next(e)}};
+exports.updateCompany = async (req,res,next)=>{try{validate({body:req.body,params:req.params},schemas.companyUpdate);res.json(await s.updateCompany(req.body,Number(req.params.id)));}catch(e){next(e)}};
+exports.createPayment = async (req,res,next)=>{try{validate({body:req.body},schemas.paymentCreate);res.status(201).json(await s.createPayment(req.body));}catch(e){next(e)}};
+exports.listPayments = async (req,res,next)=>{try{res.json(await s.listPayments(req.query.company_id));}catch(e){next(e)}};

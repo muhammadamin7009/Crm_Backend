@@ -9,30 +9,36 @@ const getClientBalance = async ({ client_id, date_from, date_to }) => {
 
   const salesQuery = db("client_sales").where({ is_deleted: false });
   const paymentsQuery = db("client_payments").where({ is_deleted: false });
+  const returnsQuery = db("client_returns").where({ is_deleted: false });
 
   if (client_id) {
     await getClient(Number(client_id));
     salesQuery.andWhere("client_id", Number(client_id));
     paymentsQuery.andWhere("client_id", Number(client_id));
+    returnsQuery.andWhere("client_id", Number(client_id));
   }
   if (date_from) {
     salesQuery.andWhere("sold_at", ">=", date_from);
     paymentsQuery.andWhere("paid_at", ">=", date_from);
+    returnsQuery.andWhere("returned_at", ">=", date_from);
   }
   if (date_to) {
     salesQuery.andWhere("sold_at", "<=", date_to);
     paymentsQuery.andWhere("paid_at", "<=", date_to);
+    returnsQuery.andWhere("returned_at", "<=", date_to);
   }
 
-  const [sales, payments] = await Promise.all([
+  const [sales, payments, returns] = await Promise.all([
     salesQuery
       .sum({ total_amount: "total_amount" })
       .sum({ initial_paid_amount: "paid_amount" })
       .first(),
     paymentsQuery.sum({ extra_paid_amount: "amount" }).first(),
+    returnsQuery.sum({ returned_amount: "amount" }).first(),
   ]);
 
   const totalAmount = Number(sales.total_amount || 0);
+  const returnedAmount = Number(returns.returned_amount || 0);
   const paidAmount =
     Number(sales.initial_paid_amount || 0) +
     Number(payments.extra_paid_amount || 0);
@@ -42,7 +48,8 @@ const getClientBalance = async ({ client_id, date_from, date_to }) => {
     balance: {
       total_amount: totalAmount,
       paid_amount: paidAmount,
-      debt_amount: totalAmount - paidAmount,
+    returned_amount: returnedAmount,
+    debt_amount: totalAmount - returnedAmount - paidAmount,
     },
   };
 };

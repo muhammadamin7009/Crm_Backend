@@ -31,7 +31,7 @@ const loginUser = async (req, res, next) => {
   try {
     httpValidator({ body: req.body }, loginUserSchema);
 
-    const result = await login(req.body);
+    const result = await login(req.body, req.company);
 
     res.status(200).json(result);
   } catch (error) {
@@ -82,7 +82,7 @@ const postUser = async (req, res, next) => {
   try {
     httpValidator({ body: req.body }, postUserSchema);
 
-    const result = await registration(req.body);
+    const result = await registration(req.body, req.company);
 
     res.status(200).json(result);
   } catch (error) {

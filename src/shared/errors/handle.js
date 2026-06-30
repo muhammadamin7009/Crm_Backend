@@ -38,5 +38,9 @@ module.exports = (err, req, res, next) => {
     message = err.message;
   }
 
+  if (status === 500 && process.env.NODE_ENV !== "test") {
+    console.error(err);
+  }
+
   res.status(status).json({ message });
 };

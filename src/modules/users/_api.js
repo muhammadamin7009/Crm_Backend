@@ -53,7 +53,7 @@ router.post(
   postUserByStaff,
 );
 router.post("/users", postUser);
-router.get("/users", isLoggedIn, getUsers);
+router.get("/users", isLoggedIn, hasRole("super_admin", "admin", "worker"), getUsers);
 router.get("/users/me", isLoggedIn, getMe);
 router.get("/users/:id", isLoggedIn, hasRole("super_admin", "admin"), getUser);
 router.patch("/users/me", isLoggedIn, patchMe);

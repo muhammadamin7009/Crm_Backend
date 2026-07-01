@@ -1,5 +1,6 @@
 const db = require("../../db");
 const { BadRequestError, NotFoundError } = require("../../shared/errors");
+const { getAdvanceBalance } = require("../worker-advances/helpers");
 
 const range = (query, column, { date_from, date_to }) => {
   if (date_from) query.andWhere(column, ">=", date_from);
@@ -8,6 +9,17 @@ const range = (query, column, { date_from, date_to }) => {
 };
 const clean = (value) => value || null;
 const n = (value) => Number(value || 0);
+
+const ensureActiveRecord = async (table, id, label) => {
+  if (!id) return null;
+  const query = db(table).where({ id: Number(id) });
+  if (["expense_categories", "financial_accounts"].includes(table)) {
+    query.andWhere({ is_deleted: false });
+  }
+  const row = await query.first();
+  if (!row) throw new NotFoundError(`${label} topilmadi`);
+  return row;
+};
 
 const listPayroll = async ({ limit = 50, offset = 0 }) => {
   const query = db("payroll_periods as pp");
@@ -27,12 +39,17 @@ const showPayroll = async (id) => {
 
 const createPayroll = async (body, actor) => {
   if (new Date(body.period_from) > new Date(body.period_to)) throw new BadRequestError("Boshlanish sanasi tugash sanasidan katta bo'lmasin");
-  const exists = await db("payroll_periods").where({ period_from: body.period_from, period_to: body.period_to }).first();
-  if (exists) throw new BadRequestError("Bu davr uchun haftalik ish haqi hisobi mavjud");
+  if (new Date(body.payment_date) < new Date(body.period_to)) throw new BadRequestError("To'lov sanasi hisob davri tugashidan oldin bo'lmasin");
+  const periodDays = Math.floor((new Date(body.period_to) - new Date(body.period_from)) / 86400000) + 1;
+  if (periodDays > 7) throw new BadRequestError("Haftalik hisob davri 7 kundan oshmasin");
+  const exists = await db("payroll_periods")
+    .where("period_from", "<=", body.period_to)
+    .andWhere("period_to", ">=", body.period_from)
+    .first();
+  if (exists) throw new BadRequestError("Bu sanalar boshqa haftalik ish haqi davri bilan kesishadi");
   const periodId = await db.transaction(async (trx) => {
     const [period] = await trx("payroll_periods").insert({ ...body, note: clean(body.note), created_by: actor.id }).returning("*");
     const employees = await trx("employee_profiles as ep").join("users as u", "u.id", "ep.user_id").where({ "ep.is_active": true, "u.is_deleted": false }).select("ep.id", "ep.user_id");
-    const periodDays = Math.floor((new Date(body.period_to) - new Date(body.period_from)) / 86400000) + 1;
     for (const employee of employees) {
       const agreement = await trx("employee_agreements").where("employee_id", employee.id).where("effective_from", "<=", body.period_to).where((qb) => qb.whereNull("effective_to").orWhere("effective_to", ">=", body.period_from)).orderBy("effective_from", "desc").first();
       if (!agreement) continue;
@@ -52,12 +69,25 @@ const createPayroll = async (body, actor) => {
 };
 
 const updatePayrollLine = async (body, id) => {
-  const line = await db("payroll_lines as pl").join("payroll_periods as pp", "pp.id", "pl.period_id").where("pl.id", id).select("pl.*", "pp.status").first();
+  const line = await db("payroll_lines as pl")
+    .join("payroll_periods as pp", "pp.id", "pl.period_id")
+    .join("employee_profiles as ep", "ep.id", "pl.employee_id")
+    .where("pl.id", id)
+    .select("pl.*", "pp.status", "ep.user_id")
+    .first();
   if (!line) throw new NotFoundError("Ish haqi hisob qatori topilmadi");
   if (line.status === "closed") throw new BadRequestError("Yopilgan ish haqi hisobini o'zgartirib bo'lmaydi");
   const merged = { ...line, ...body };
   const total = n(merged.piece_earnings) + n(merged.fixed_earnings) + n(merged.daily_earnings) + n(merged.commission_earnings) + n(merged.bonus);
   const maxCash = total - n(merged.advance_deduction) - n(merged.other_deduction);
+  if (n(merged.advance_deduction) > 0) {
+    const advance = await getAdvanceBalance(Number(line.user_id));
+    if (n(merged.advance_deduction) > advance.remaining_advance) {
+      throw new BadRequestError(
+        `Avansdan ushlanma qolgan avansdan oshmasin. Qolgan avans: ${advance.remaining_advance}`,
+      );
+    }
+  }
   if (n(merged.cash_amount) > maxCash) throw new BadRequestError(`Naqd summa ${maxCash} dan oshmasin`);
   const [updated] = await db("payroll_lines").where({ id }).update({ ...body, note: body.note !== undefined ? clean(body.note) : line.note, total_earned: total, updated_at: db.fn.now() }).returning("*");
   return { payroll_line: updated };
@@ -74,13 +104,26 @@ const closePayroll = async (id, actor) => {
       .select("pl.*", "ep.user_id");
 
     for (const line of lines) {
-      if (n(line.cash_amount) || n(line.advance_deduction)) {
+      if (n(line.advance_deduction) > 0) {
+        const advance = await getAdvanceBalance(Number(line.user_id));
+        if (n(line.advance_deduction) > advance.remaining_advance) {
+          throw new BadRequestError(
+            `${line.user_id}-hodim avansidan ushlanma qolgan avansdan oshib ketgan`,
+          );
+        }
+      }
+      if (
+        n(line.cash_amount) ||
+        n(line.advance_deduction) ||
+        n(line.other_deduction)
+      ) {
         await trx("worker_payments")
           .insert({
             worker_id: line.user_id,
             payroll_line_id: line.id,
             amount: n(line.cash_amount),
             advance_deduction: n(line.advance_deduction),
+            other_deduction: n(line.other_deduction),
             payment_type: "salary",
             paid_at: period.payment_date,
             period_from: period.period_from,
@@ -106,11 +149,17 @@ const listExpenses = async (filters) => {
   const total = await query.clone().clearSelect().sum({ amount: "e.amount" }).first();
   return { expenses: rows, total_amount: n(total.amount) };
 };
-const createExpense = async (body, actor) => db.transaction(async (trx) => {
+const createExpense = async (body, actor) => {
+  await ensureActiveRecord("expense_categories", body.category_id, "Xarajat kategoriyasi");
+  if (body.account_id) {
+    await ensureActiveRecord("financial_accounts", body.account_id, "Moliyaviy hisob");
+  }
+  return db.transaction(async (trx) => {
   const [expense] = await trx("expenses").insert({ ...body, account_id: body.account_id || null, spent_at: body.spent_at || trx.fn.now(), note: clean(body.note), created_by: actor.id }).returning("*");
   if (body.account_id) await trx("cash_transactions").insert({ account_id: body.account_id, transaction_type: "expense", source_type: "expense", source_id: expense.id, amount: body.amount, transacted_at: body.spent_at || trx.fn.now(), description: body.title, created_by: actor.id });
   return { expense };
-});
+  });
+};
 
 const listAccounts = async () => {
   const accounts = await db("financial_accounts as fa").where({ is_deleted: false }).select("fa.*", db.raw("fa.opening_balance + COALESCE((SELECT SUM(CASE WHEN transaction_type='income' THEN amount ELSE -amount END) FROM cash_transactions ct WHERE ct.account_id=fa.id AND ct.is_deleted=false),0) AS balance")).orderBy("name");
@@ -118,7 +167,10 @@ const listAccounts = async () => {
 };
 const createAccount = async (body) => ({ financial_account: (await db("financial_accounts").insert(body).returning("*"))[0] });
 const listTransactions = async (filters) => ({ cash_transactions: await range(db("cash_transactions as ct").join("financial_accounts as fa", "fa.id", "ct.account_id").where("ct.is_deleted", false), "ct.transacted_at", filters).select("ct.*", "fa.name as account_name").orderBy("ct.transacted_at", "desc").limit(n(filters.limit || 50)).offset(n(filters.offset)) });
-const createTransaction = async (body, actor) => ({ cash_transaction: (await db("cash_transactions").insert({ ...body, source_type: "manual", transacted_at: body.transacted_at || db.fn.now(), description: clean(body.description), created_by: actor.id }).returning("*"))[0] });
+const createTransaction = async (body, actor) => {
+  await ensureActiveRecord("financial_accounts", body.account_id, "Moliyaviy hisob");
+  return { cash_transaction: (await db("cash_transactions").insert({ ...body, source_type: "manual", transacted_at: body.transacted_at || db.fn.now(), description: clean(body.description), created_by: actor.id }).returning("*"))[0] };
+};
 
 const listReturns = async (filters) => {
   const query = range(db("client_returns as cr").join("users as u", "u.id", "cr.client_id").join("products as p", "p.id", "cr.product_id").where("cr.is_deleted", false), "cr.returned_at", filters);

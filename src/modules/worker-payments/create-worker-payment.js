@@ -51,11 +51,12 @@ const getRemainingBalance = async ({ workerId, periodFrom, periodTo, excludePaym
     paidQuery
       .sum({ cash_paid: "amount" })
       .sum({ advance_deducted: "advance_deduction" })
+      .sum({ other_deducted: "other_deduction" })
       .first(),
   ]);
 
   const totalEarned = Number(earned.total_earned || 0);
-  const totalPaid = Number(paid.cash_paid || 0) + Number(paid.advance_deducted || 0);
+  const totalPaid = Number(paid.cash_paid || 0) + Number(paid.advance_deducted || 0) + Number(paid.other_deducted || 0);
 
   return {
     total_earned: totalEarned,

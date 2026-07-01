@@ -2,6 +2,23 @@ const db = require("../../db");
 const { BadRequestError, NotFoundError } = require("../../shared/errors");
 const clean = (value) => value || null;
 
+const ensurePosition = async (id) => {
+  const position = await db("positions")
+    .where({ id: Number(id), is_deleted: false, is_active: true })
+    .first();
+  if (!position) throw new NotFoundError("Faol lavozim topilmadi");
+  return position;
+};
+
+const ensureDepartment = async (id) => {
+  if (!id) return null;
+  const department = await db("departments")
+    .where({ id: Number(id), is_deleted: false, is_active: true })
+    .first();
+  if (!department) throw new NotFoundError("Faol bo'lim topilmadi");
+  return department;
+};
+
 const listPositions = async ({
   q = "",
   is_active,
@@ -31,8 +48,9 @@ const listPositions = async ({
     },
   };
 };
-const createPosition = async (body) => ({
-  position: (
+const createPosition = async (body) => {
+  await ensureDepartment(body.department_id);
+  return { position: (
     await db("positions")
       .insert({
         name: body.name,
@@ -41,11 +59,12 @@ const createPosition = async (body) => ({
         is_active: body.is_active ?? true,
       })
       .returning("*")
-  )[0],
-});
+  )[0] };
+};
 const updatePosition = async (body, id) => {
   const row = await db("positions").where({ id, is_deleted: false }).first();
   if (!row) throw new NotFoundError("Lavozim topilmadi");
+  if (body.department_id !== undefined) await ensureDepartment(body.department_id);
   const [updated] = await db("positions")
     .where({ id })
     .update({
@@ -115,6 +134,7 @@ const createProfile = async (body) => {
   if (!user) throw new NotFoundError("User topilmadi");
   if (!["super_admin", "admin", "worker"].includes(user.role))
     throw new BadRequestError("Faqat korxona hodimini employee qilish mumkin");
+  await ensurePosition(body.position_id);
   const [row] = await db("employee_profiles")
     .insert({
       user_id: Number(body.user_id),
@@ -130,6 +150,7 @@ const createProfile = async (body) => {
 const updateProfile = async (body, id) => {
   const row = await db("employee_profiles").where({ id }).first();
   if (!row) throw new NotFoundError("Hodim profili topilmadi");
+  if (body.position_id !== undefined) await ensurePosition(body.position_id);
   const [updated] = await db("employee_profiles")
     .where({ id })
     .update({

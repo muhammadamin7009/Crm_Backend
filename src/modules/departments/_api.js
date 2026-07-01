@@ -8,8 +8,18 @@ const {
   removeDepartment,
 } = require("./_controllers");
 
-router.get("/departments", isLoggedIn, getDepartments);
-router.get("/departments/:id", isLoggedIn, getDepartment);
+router.get(
+  "/departments",
+  isLoggedIn,
+  hasRole("super_admin", "admin", "worker"),
+  getDepartments,
+);
+router.get(
+  "/departments/:id",
+  isLoggedIn,
+  hasRole("super_admin", "admin", "worker"),
+  getDepartment,
+);
 router.post(
   "/departments",
   isLoggedIn,

@@ -154,7 +154,7 @@ const getUsers = async (req, res, next) => {
   try {
     httpValidator({ query: req.query }, getUsersSchema);
 
-    const result = await listUsers(req.query);
+    const result = await listUsers(req.query, req.user);
 
     res.status(200).json(result);
   } catch (error) {

@@ -39,30 +39,38 @@ const getClientRemainingDebt = async ({ clientId, saleId, excludePaymentId }) =>
   const paymentsQuery = db("client_payments")
     .where({ is_deleted: false })
     .andWhere("client_id", clientId);
+  const returnsQuery = db("client_returns")
+    .where({ is_deleted: false })
+    .andWhere("client_id", clientId);
 
   if (saleId) {
     salesQuery.andWhere("id", saleId);
     paymentsQuery.andWhere("client_sale_id", saleId);
+    returnsQuery.andWhere("client_sale_id", saleId);
   }
 
   if (excludePaymentId) paymentsQuery.andWhereNot("id", excludePaymentId);
 
-  const [sales, payments] = await Promise.all([
+  const [sales, payments, returns] = await Promise.all([
     salesQuery
       .sum({ total_amount: "total_amount" })
       .sum({ initial_paid_amount: "paid_amount" })
       .first(),
     paymentsQuery.sum({ extra_paid_amount: "amount" }).first(),
+    returnsQuery.sum({ returned_amount: "amount" }).first(),
   ]);
 
   const totalAmount = Number(sales.total_amount || 0);
   const initialPaidAmount = Number(sales.initial_paid_amount || 0);
   const extraPaidAmount = Number(payments.extra_paid_amount || 0);
+  const returnedAmount = Number(returns.returned_amount || 0);
 
   return {
     total_amount: totalAmount,
+    returned_amount: returnedAmount,
     paid_amount: initialPaidAmount + extraPaidAmount,
-    debt_amount: totalAmount - initialPaidAmount - extraPaidAmount,
+    debt_amount:
+      totalAmount - returnedAmount - initialPaidAmount - extraPaidAmount,
   };
 };
 

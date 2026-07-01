@@ -42,6 +42,7 @@ const getWorkerBalance = async ({ worker_id, date_from, date_to }, actor) => {
     paidQuery.clone()
       .sum({ cash_paid: "wp.amount" })
       .sum({ advance_deducted: "wp.advance_deduction" })
+      .sum({ other_deducted: "wp.other_deduction" })
       .first(),
     getAdvanceBalance(workerId),
   ]);
@@ -49,7 +50,8 @@ const getWorkerBalance = async ({ worker_id, date_from, date_to }, actor) => {
   const totalEarned = Number(earned.total_earned || 0);
   const cashPaid = Number(paid.cash_paid || 0);
   const advanceDeducted = Number(paid.advance_deducted || 0);
-  const totalPaid = cashPaid + advanceDeducted;
+  const otherDeducted = Number(paid.other_deducted || 0);
+  const totalPaid = cashPaid + advanceDeducted + otherDeducted;
 
   return {
     worker_id: workerId,
@@ -60,6 +62,7 @@ const getWorkerBalance = async ({ worker_id, date_from, date_to }, actor) => {
       total_paid: totalPaid,
       cash_paid: cashPaid,
       advance_deducted: advanceDeducted,
+      other_deducted: otherDeducted,
       total_advance: advanceBalance.total_advance,
       remaining_advance: advanceBalance.remaining_advance,
       remaining: totalEarned - totalPaid,

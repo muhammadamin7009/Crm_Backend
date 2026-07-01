@@ -9,9 +9,9 @@ const {
   removeWorkerOutput,
 } = require("./_controllers");
 
-router.get("/worker-outputs", isLoggedIn, getWorkerOutputs);
-router.get("/worker-outputs/summary", isLoggedIn, getWorkerOutputsSummary);
-router.get("/worker-outputs/:id", isLoggedIn, getWorkerOutput);
+router.get("/worker-outputs", isLoggedIn, hasRole("super_admin", "admin", "worker"), getWorkerOutputs);
+router.get("/worker-outputs/summary", isLoggedIn, hasRole("super_admin", "admin", "worker"), getWorkerOutputsSummary);
+router.get("/worker-outputs/:id", isLoggedIn, hasRole("super_admin", "admin", "worker"), getWorkerOutput);
 router.post(
   "/worker-outputs",
   isLoggedIn,

@@ -10,10 +10,10 @@ const {
   removeWorkerPayment,
 } = require("./_controllers");
 
-router.get("/worker-payments", isLoggedIn, getWorkerPayments);
-router.get("/worker-payments/summary", isLoggedIn, getWorkerPaymentsSummary);
-router.get("/worker-payments/balance", isLoggedIn, getWorkerBalance);
-router.get("/worker-payments/:id", isLoggedIn, getWorkerPayment);
+router.get("/worker-payments", isLoggedIn, hasRole("super_admin", "admin", "worker"), getWorkerPayments);
+router.get("/worker-payments/summary", isLoggedIn, hasRole("super_admin", "admin", "worker"), getWorkerPaymentsSummary);
+router.get("/worker-payments/balance", isLoggedIn, hasRole("super_admin", "admin", "worker"), getWorkerBalance);
+router.get("/worker-payments/:id", isLoggedIn, hasRole("super_admin", "admin", "worker"), getWorkerPayment);
 router.post(
   "/worker-payments",
   isLoggedIn,

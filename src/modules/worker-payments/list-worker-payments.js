@@ -57,6 +57,7 @@ const listWorkerPayments = async (filters, actor) => {
     .clearSelect()
     .sum({ cash_paid: "wp.amount" })
     .sum({ advance_deducted: "wp.advance_deduction" })
+    .sum({ other_deducted: "wp.other_deduction" })
     .first();
 
   const [workerPayments, { count }, totals] = await Promise.all([
@@ -72,9 +73,10 @@ const listWorkerPayments = async (filters, actor) => {
   return {
     worker_payments: workerPayments,
     totals: {
-      total_paid: Number(totals.cash_paid || 0) + Number(totals.advance_deducted || 0),
+      total_paid: Number(totals.cash_paid || 0) + Number(totals.advance_deducted || 0) + Number(totals.other_deducted || 0),
       cash_paid: Number(totals.cash_paid || 0),
       advance_deducted: Number(totals.advance_deducted || 0),
+      other_deducted: Number(totals.other_deducted || 0),
     },
     pageInfo: {
       total: Number(count),

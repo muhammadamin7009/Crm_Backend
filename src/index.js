@@ -14,6 +14,8 @@ const employeesRoute = require("./modules/employees/_api");
 const financeRoute = require("./modules/finance/_api");
 const tenantContext = require("./shared/tenant-context");
 const platformRoute = require("./modules/platform/_api");
+const auditLogsRoute = require("./modules/audit-logs/_api");
+const auditLog = require("./shared/middlewares/audit-log");
 const handleError = require("./shared/errors/handle");
 const cors = require("cors");
 
@@ -25,6 +27,7 @@ app.use("/uploads", express.static("uploads"));
 app.use("/api/platform", platformRoute);
 
 const tenantRouter = express.Router({ mergeParams: true });
+tenantRouter.use(auditLog);
 tenantRouter.use(usersRoute);
 tenantRouter.use(categoriesRoute);
 tenantRouter.use(productsRoute);
@@ -37,6 +40,7 @@ tenantRouter.use(workerAdvancesRoute);
 tenantRouter.use(materialPurchasesRoute);
 tenantRouter.use(employeesRoute);
 tenantRouter.use(financeRoute);
+tenantRouter.use(auditLogsRoute);
 
 app.use("/api/:companySlug", tenantContext, tenantRouter);
 

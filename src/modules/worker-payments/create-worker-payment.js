@@ -13,34 +13,12 @@ const assertPeriod = ({ period_from, period_to }) => {
   }
 };
 
-const applyPeriodFilter = (query, column, periodFrom, periodTo) => {
-  if (periodFrom) query.andWhere(column, ">=", periodFrom);
-  if (periodTo) query.andWhere(column, "<=", periodTo);
-  return query;
-};
-
-const getRemainingBalance = async ({ workerId, periodFrom, periodTo, excludePaymentId }) => {
+const getRemainingBalance = async ({ workerId, excludePaymentId }) => {
   const earnedQuery = db("worker_outputs")
     .where({ worker_id: workerId, is_deleted: false });
 
   const paidQuery = db("worker_payments")
     .where({ worker_id: workerId, is_deleted: false });
-
-  applyPeriodFilter(earnedQuery, "worked_at", periodFrom, periodTo);
-
-  if (periodFrom || periodTo) {
-    if (periodFrom) {
-      paidQuery.andWhere((qb) => {
-        qb.where("period_to", ">=", periodFrom).orWhereNull("period_to");
-      });
-    }
-
-    if (periodTo) {
-      paidQuery.andWhere((qb) => {
-        qb.where("period_from", "<=", periodTo).orWhereNull("period_from");
-      });
-    }
-  }
 
   if (excludePaymentId) {
     paidQuery.andWhereNot("id", excludePaymentId);
@@ -69,14 +47,10 @@ const assertPaymentDoesNotExceedBalance = async ({
   workerId,
   amount,
   advanceDeduction = 0,
-  periodFrom,
-  periodTo,
   excludePaymentId,
 }) => {
   const balance = await getRemainingBalance({
     workerId,
-    periodFrom,
-    periodTo,
     excludePaymentId,
   });
 
@@ -124,8 +98,6 @@ const createWorkerPayment = async (body, actor) => {
     workerId: Number(body.worker_id),
     amount: Number(body.amount),
     advanceDeduction,
-    periodFrom: body.period_from || null,
-    periodTo: body.period_to || null,
   });
 
   const [created] = await db("worker_payments")

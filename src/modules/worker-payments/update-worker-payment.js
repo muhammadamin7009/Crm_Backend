@@ -41,8 +41,6 @@ const updateWorkerPayment = async (body, { id }) => {
     workerId,
     amount,
     advanceDeduction,
-    periodFrom,
-    periodTo,
     excludePaymentId: id,
   });
 

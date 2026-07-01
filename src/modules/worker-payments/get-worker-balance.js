@@ -52,6 +52,30 @@ const getWorkerBalance = async ({ worker_id, date_from, date_to }, actor) => {
   const advanceDeducted = Number(paid.advance_deducted || 0);
   const otherDeducted = Number(paid.other_deducted || 0);
   const totalPaid = cashPaid + advanceDeducted + otherDeducted;
+  let previousRemaining = 0;
+  let newEarnings = totalEarned;
+  let lastPayment = null;
+
+  if (workerId && !date_from && !date_to) {
+    lastPayment = await db("worker_payments")
+      .where({ worker_id: workerId, is_deleted: false })
+      .select("id", "amount", "advance_deduction", "paid_at", "created_at")
+      .orderBy("paid_at", "desc")
+      .orderBy("created_at", "desc")
+      .first();
+
+    if (lastPayment) {
+      const earnedBefore = await db("worker_outputs")
+        .where({ worker_id: workerId, is_deleted: false })
+        .andWhere("created_at", "<=", lastPayment.created_at)
+        .sum({ total: "total_amount" })
+        .first();
+      const earnedBeforePayment = Number(earnedBefore.total || 0);
+
+      previousRemaining = Math.max(earnedBeforePayment - totalPaid, 0);
+      newEarnings = Math.max(totalEarned - earnedBeforePayment, 0);
+    }
+  }
 
   return {
     worker_id: workerId,
@@ -66,6 +90,9 @@ const getWorkerBalance = async ({ worker_id, date_from, date_to }, actor) => {
       total_advance: advanceBalance.total_advance,
       remaining_advance: advanceBalance.remaining_advance,
       remaining: totalEarned - totalPaid,
+      previous_remaining: previousRemaining,
+      new_earnings: newEarnings,
+      last_payment_date: lastPayment?.paid_at || null,
     },
   };
 };

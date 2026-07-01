@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon src",
-    "start": "node src"
+    "start": "node src",
+    "backup": "node scripts/backup-database.js"
   },
   "keywords": [],
   "author": "",

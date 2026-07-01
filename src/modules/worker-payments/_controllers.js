@@ -15,6 +15,7 @@ const updateWorkerPaymentService = require("./update-worker-payment");
 const deleteWorkerPaymentService = require("./delete-worker-payment");
 const summaryWorkerPaymentsService = require("./summary-worker-payments");
 const getWorkerBalanceService = require("./get-worker-balance");
+const listWorkerDuesService = require("./list-worker-dues");
 
 const createWorkerPayment = async (req, res, next) => {
   try {
@@ -51,6 +52,14 @@ const getWorkerBalance = async (req, res, next) => {
     httpValidator({ query: req.query }, workerBalanceSchema);
     const result = await getWorkerBalanceService(req.query, req.user);
     res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getWorkerDues = async (_req, res, next) => {
+  try {
+    res.status(200).json(await listWorkerDuesService());
   } catch (error) {
     next(error);
   }
@@ -99,6 +108,7 @@ module.exports = {
   getWorkerPayments,
   getWorkerPaymentsSummary,
   getWorkerBalance,
+  getWorkerDues,
   getWorkerPayment,
   patchWorkerPayment,
   removeWorkerPayment,

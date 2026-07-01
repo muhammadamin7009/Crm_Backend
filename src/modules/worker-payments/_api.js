@@ -5,6 +5,7 @@ const {
   getWorkerPayments,
   getWorkerPaymentsSummary,
   getWorkerBalance,
+  getWorkerDues,
   getWorkerPayment,
   patchWorkerPayment,
   removeWorkerPayment,
@@ -13,6 +14,7 @@ const {
 router.get("/worker-payments", isLoggedIn, hasRole("super_admin", "admin", "worker"), getWorkerPayments);
 router.get("/worker-payments/summary", isLoggedIn, hasRole("super_admin", "admin", "worker"), getWorkerPaymentsSummary);
 router.get("/worker-payments/balance", isLoggedIn, hasRole("super_admin", "admin", "worker"), getWorkerBalance);
+router.get("/worker-payments/due", isLoggedIn, hasRole("super_admin", "admin"), getWorkerDues);
 router.get("/worker-payments/:id", isLoggedIn, hasRole("super_admin", "admin", "worker"), getWorkerPayment);
 router.post(
   "/worker-payments",

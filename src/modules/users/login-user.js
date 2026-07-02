@@ -53,6 +53,10 @@ const login = async ({ username, password }, company) => {
     company_id: existing.company_id,
     company_slug: company.slug,
     company_name: company.name,
+    plan_code: company.plan_code,
+    plan_name: company.plan_name,
+    plan_features: company.plan_features || [],
+    plan_max_users: company.plan_max_users,
   };
 
   return {

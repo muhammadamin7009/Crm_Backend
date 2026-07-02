@@ -7,3 +7,4 @@ exports.createCompany = async (req,res,next)=>{try{validate({body:req.body},sche
 exports.updateCompany = async (req,res,next)=>{try{validate({body:req.body,params:req.params},schemas.companyUpdate);res.json(await s.updateCompany(req.body,Number(req.params.id)));}catch(e){next(e)}};
 exports.createPayment = async (req,res,next)=>{try{validate({body:req.body},schemas.paymentCreate);res.status(201).json(await s.createPayment(req.body));}catch(e){next(e)}};
 exports.listPayments = async (req,res,next)=>{try{res.json(await s.listPayments(req.query.company_id));}catch(e){next(e)}};
+exports.listPlans = async (_req,res,next)=>{try{res.json(await s.listPlans());}catch(e){next(e)}};

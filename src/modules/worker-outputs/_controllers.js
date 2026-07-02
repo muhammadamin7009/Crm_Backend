@@ -1,6 +1,7 @@
 const httpValidator = require("../../shared/http-validator");
 const {
   createWorkerOutputSchema,
+  createBulkWorkerOutputsSchema,
   updateWorkerOutputSchema,
   showWorkerOutputSchema,
   deleteWorkerOutputSchema,
@@ -8,6 +9,7 @@ const {
   workerOutputsSummarySchema,
 } = require("./_schemas");
 const createWorkerOutputService = require("./create-worker-output");
+const createBulkWorkerOutputsService = require("./create-bulk-worker-outputs");
 const listWorkerOutputsService = require("./list-worker-outputs");
 const showWorkerOutputService = require("./show-worker-output");
 const updateWorkerOutputService = require("./update-worker-output");
@@ -18,6 +20,16 @@ const createWorkerOutput = async (req, res, next) => {
   try {
     httpValidator({ body: req.body }, createWorkerOutputSchema);
     const result = await createWorkerOutputService(req.body, req.user);
+    res.status(201).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const createBulkWorkerOutputs = async (req, res, next) => {
+  try {
+    httpValidator({ body: req.body }, createBulkWorkerOutputsSchema);
+    const result = await createBulkWorkerOutputsService(req.body, req.user);
     res.status(201).json(result);
   } catch (error) {
     next(error);
@@ -84,6 +96,7 @@ const removeWorkerOutput = async (req, res, next) => {
 
 module.exports = {
   createWorkerOutput,
+  createBulkWorkerOutputs,
   getWorkerOutputs,
   getWorkerOutputsSummary,
   getWorkerOutput,

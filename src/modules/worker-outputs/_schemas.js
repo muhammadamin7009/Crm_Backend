@@ -23,6 +23,26 @@ exports.createWorkerOutputSchema = {
   }),
 };
 
+exports.createBulkWorkerOutputsSchema = {
+  body: Joi.object({
+    worker_id: outputFields.worker_id.required(),
+    department_id: outputFields.department_id.required(),
+    worked_at: outputFields.worked_at,
+    note: outputFields.note,
+    items: Joi.array()
+      .items(
+        Joi.object({
+          product_id: outputFields.product_id.required(),
+          quantity: outputFields.quantity.required(),
+        }),
+      )
+      .min(1)
+      .max(50)
+      .unique("product_id")
+      .required(),
+  }),
+};
+
 exports.updateWorkerOutputSchema = {
   params: idParams,
   body: Joi.object(outputFields).min(1),

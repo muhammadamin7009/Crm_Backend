@@ -2,6 +2,7 @@ const router = require("express").Router();
 const { isLoggedIn, hasRole } = require("../../shared/auth");
 const {
   createWorkerOutput,
+  createBulkWorkerOutputs,
   getWorkerOutputs,
   getWorkerOutputsSummary,
   getWorkerOutput,
@@ -12,6 +13,12 @@ const {
 router.get("/worker-outputs", isLoggedIn, hasRole("super_admin", "admin", "worker"), getWorkerOutputs);
 router.get("/worker-outputs/summary", isLoggedIn, hasRole("super_admin", "admin", "worker"), getWorkerOutputsSummary);
 router.get("/worker-outputs/:id", isLoggedIn, hasRole("super_admin", "admin", "worker"), getWorkerOutput);
+router.post(
+  "/worker-outputs/bulk",
+  isLoggedIn,
+  hasRole("super_admin", "admin"),
+  createBulkWorkerOutputs,
+);
 router.post(
   "/worker-outputs",
   isLoggedIn,

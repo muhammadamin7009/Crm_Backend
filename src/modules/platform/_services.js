@@ -13,16 +13,19 @@ const login = async ({ username, password }) => {
 const listCompanies = async () => ({
   companies: await db.root("companies as c")
     .leftJoin("company_subscriptions as cs", "cs.company_id", "c.id")
-    .select("c.*", "cs.status as subscription_status", "cs.starts_at", "cs.ends_at", db.root.raw("(SELECT COUNT(*) FROM users u WHERE u.company_id=c.id AND u.is_deleted=false) AS users_count"), db.root.raw("(SELECT COALESCE(SUM(amount),0) FROM subscription_payments sp WHERE sp.company_id=c.id) AS total_paid"), db.root.raw("(SELECT MAX(paid_at) FROM subscription_payments sp WHERE sp.company_id=c.id) AS last_paid_at"))
+    .leftJoin("subscription_plans as sp", "sp.id", "cs.plan_id")
+    .select("c.*", "cs.status as subscription_status", "cs.starts_at", "cs.ends_at", "sp.code as plan_code", "sp.name as plan_name", "sp.monthly_price", "sp.max_users", "sp.storage_mb", db.root.raw("(SELECT COUNT(*) FROM users u WHERE u.company_id=c.id AND u.is_deleted=false) AS users_count"), db.root.raw("(SELECT COALESCE(SUM(amount),0) FROM subscription_payments pay WHERE pay.company_id=c.id) AS total_paid"), db.root.raw("(SELECT MAX(paid_at) FROM subscription_payments pay WHERE pay.company_id=c.id) AS last_paid_at"))
     .orderBy("c.created_at", "desc"),
 });
 
 const createCompany = async (body) => {
   const duplicate = await db.root("companies").where({ slug: body.slug }).first();
   if (duplicate) throw new BadRequestError("Bu korxona kodi band");
+  const plan = await db.root("subscription_plans").where({ code: body.plan_code, is_active: true }).first();
+  if (!plan) throw new NotFoundError("Obuna rejasi topilmadi");
   return db.root.transaction(async (trx) => {
     const [company] = await trx("companies").insert({ name: body.name, slug: body.slug, phone: body.phone || null }).returning("*");
-    await trx("company_subscriptions").insert({ company_id: company.id, status: "active", ends_at: body.subscription_ends_at || null });
+    await trx("company_subscriptions").insert({ company_id: company.id, plan_id: plan.id, status: "active", ends_at: body.subscription_ends_at || null });
     await trx.raw("SET LOCAL ROLE crm_tenant_user");
     await trx.raw("SELECT set_config('app.current_company_id', ?, true)", [String(company.id)]);
     const hash = await bcrypt.hash(body.super_admin.password, 10);
@@ -40,6 +43,11 @@ const updateCompany = async (body, id) => db.root.transaction(async (trx) => {
   const subscriptionPatch = {};
   if (body.subscription_status !== undefined) subscriptionPatch.status = body.subscription_status;
   if (body.subscription_ends_at !== undefined) subscriptionPatch.ends_at = body.subscription_ends_at;
+  if (body.plan_code !== undefined) {
+    const plan = await trx("subscription_plans").where({ code: body.plan_code, is_active: true }).first();
+    if (!plan) throw new NotFoundError("Obuna rejasi topilmadi");
+    subscriptionPatch.plan_id = plan.id;
+  }
   if (Object.keys(subscriptionPatch).length) await trx("company_subscriptions").where({ company_id: id }).update({ ...subscriptionPatch, updated_at: trx.fn.now() });
   return { message: "Korxona yangilandi" };
 });
@@ -59,4 +67,11 @@ const createPayment = async (body) => {
 
 const listPayments = async (companyId) => ({ subscription_payments: await db.root("subscription_payments").where(companyId ? { company_id: Number(companyId) } : {}).orderBy("paid_at", "desc").limit(200) });
 
-module.exports = { login, listCompanies, createCompany, updateCompany, createPayment, listPayments };
+const listPlans = async () => ({
+  subscription_plans: await db.root("subscription_plans")
+    .where({ is_active: true })
+    .select("id", "code", "name", "monthly_price", "max_users", "storage_mb", "features")
+    .orderBy("monthly_price"),
+});
+
+module.exports = { login, listCompanies, createCompany, updateCompany, createPayment, listPayments, listPlans };

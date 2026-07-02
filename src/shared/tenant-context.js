@@ -5,8 +5,9 @@ const tenantContext = async (req, res, next) => {
   try {
     const company = await db.root("companies as c")
       .leftJoin("company_subscriptions as cs", "cs.company_id", "c.id")
+      .leftJoin("subscription_plans as sp", "sp.id", "cs.plan_id")
       .where({ "c.slug": req.params.companySlug })
-      .select("c.*", "cs.status as subscription_status", "cs.ends_at as subscription_ends_at")
+      .select("c.*", "cs.status as subscription_status", "cs.ends_at as subscription_ends_at", "sp.code as plan_code", "sp.name as plan_name", "sp.max_users as plan_max_users", "sp.storage_mb as plan_storage_mb", "sp.features as plan_features")
       .first();
 
     if (!company) throw new NotFoundError("Korxona topilmadi");

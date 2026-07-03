@@ -29,9 +29,7 @@ const upload = multer({
     const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
 
     if (!allowedTypes.includes(file.mimetype)) {
-      return callback(
-        new BadRequestError("Faqat JPEG, PNG yoki WebP rasm yuklash mumkin"),
-      );
+      return callback(new BadRequestError("Faqat JPEG, PNG yoki WebP rasm yuklash mumkin"));
     }
 
     callback(null, true);
@@ -60,28 +58,10 @@ router.get("/users", isLoggedIn, hasRole("super_admin", "admin", "worker"), getU
 router.get("/users/me", isLoggedIn, getMe);
 router.get("/users/:id", isLoggedIn, hasRole("super_admin", "admin"), getUser);
 router.patch("/users/me", isLoggedIn, patchMe);
-router.patch(
-  "/me/image",
-  isLoggedIn,
-  upload.single("user_image"),
-  patchUserImage,
-);
-router.patch(
-  "/users/:id",
-  isLoggedIn,
-  hasRole("super_admin", "admin"),
-  patchUser,
-);
+router.patch("/me/image", isLoggedIn, upload.single("user_image"), patchUserImage);
+router.patch("/users/:id", isLoggedIn, hasRole("super_admin", "admin"), patchUser);
 router.delete("/users/:id", [isLoggedIn, hasRole("super_admin")], deleteUser);
-router.patch(
-  "/users/:id/restore",
-  [isLoggedIn, hasRole("super_admin")],
-  restoreUser,
-);
-router.delete(
-  "/users/:id/permanent",
-  [isLoggedIn, hasRole("super_admin")],
-  permanentlyDeleteUser,
-);
+router.patch("/users/:id/restore", [isLoggedIn, hasRole("super_admin")], restoreUser);
+router.delete("/users/:id/permanent", [isLoggedIn, hasRole("super_admin")], permanentlyDeleteUser);
 
 module.exports = router;

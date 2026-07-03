@@ -49,10 +49,7 @@ exports.listProductDepartmentPricesSchema = { params: idParams };
 exports.upsertProductDepartmentPricesSchema = {
   params: idParams,
   body: Joi.object({
-    prices: Joi.array()
-      .items(Joi.object(departmentPriceFields))
-      .min(1)
-      .required(),
+    prices: Joi.array().items(Joi.object(departmentPriceFields)).min(1).required(),
   }),
 };
 exports.updateProductDepartmentPriceSchema = {
@@ -88,4 +85,3 @@ exports.listProductsSchema = {
     sort_order: Joi.string().valid("asc", "desc").default("desc"),
   }),
 };
-

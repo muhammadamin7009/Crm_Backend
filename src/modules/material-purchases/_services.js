@@ -8,9 +8,7 @@ const getSupplier = async (id) => {
   return row;
 };
 const getMaterial = async (id) => {
-  const row = await db("raw_materials")
-    .where({ id, is_deleted: false })
-    .first();
+  const row = await db("raw_materials").where({ id, is_deleted: false }).first();
   if (!row) throw new NotFoundError("Homashyo topilmadi");
   return row;
 };
@@ -34,18 +32,13 @@ const supplierBalance = async ({ supplier_id, date_from, date_to }) => {
     payments.andWhere("paid_at", "<=", date_to);
   }
   const [purchase, payment, opening] = await Promise.all([
-    purchases
-      .sum({ purchased: "subtotal" })
-      .sum({ paid_at_purchase: "paid_amount" })
-      .first(),
+    purchases.sum({ purchased: "subtotal" }).sum({ paid_at_purchase: "paid_amount" }).first(),
     payments.sum({ later_paid: "amount" }).first(),
     suppliers.sum({ opening_balance: "opening_balance" }).first(),
   ]);
   const totalPurchase = Number(purchase.purchased || 0);
-  const totalPaid =
-    Number(purchase.paid_at_purchase || 0) + Number(payment.later_paid || 0);
-  const openingBalance =
-    date_from || date_to ? 0 : Number(opening.opening_balance || 0);
+  const totalPaid = Number(purchase.paid_at_purchase || 0) + Number(payment.later_paid || 0);
+  const openingBalance = date_from || date_to ? 0 : Number(opening.opening_balance || 0);
   return {
     opening_balance: openingBalance,
     total_purchase: totalPurchase,
@@ -56,10 +49,7 @@ const supplierBalance = async ({ supplier_id, date_from, date_to }) => {
 
 const listSuppliers = async ({ q = "", limit = 100, offset = 0 }) => {
   const query = db("suppliers").where({ is_deleted: false });
-  if (q)
-    query.andWhere((qb) =>
-      qb.whereILike("name", `%${q}%`).orWhereILike("phone", `%${q}%`),
-    );
+  if (q) query.andWhere((qb) => qb.whereILike("name", `%${q}%`).orWhereILike("phone", `%${q}%`));
   const [rows, count] = await Promise.all([
     query.clone().orderBy("name").limit(Number(limit)).offset(Number(offset)),
     query.clone().count({ count: "id" }).first(),
@@ -103,20 +93,12 @@ const updateSupplier = async (body, id) => {
 const deleteSupplier = async (id) => {
   await getSupplier(id);
   const [purchase, payment] = await Promise.all([
-    db("material_purchases")
-      .where({ supplier_id: id, is_deleted: false })
-      .first(),
-    db("supplier_payments")
-      .where({ supplier_id: id, is_deleted: false })
-      .first(),
+    db("material_purchases").where({ supplier_id: id, is_deleted: false }).first(),
+    db("supplier_payments").where({ supplier_id: id, is_deleted: false }).first(),
   ]);
   if (purchase || payment)
-    throw new BadRequestError(
-      "Ta'minotchida xarid yoki to'lov tarixi bor, o'chirib bo'lmaydi",
-    );
-  await db("suppliers")
-    .where({ id })
-    .update({ is_deleted: true, updated_at: db.fn.now() });
+    throw new BadRequestError("Ta'minotchida xarid yoki to'lov tarixi bor, o'chirib bo'lmaydi");
+  await db("suppliers").where({ id }).update({ is_deleted: true, updated_at: db.fn.now() });
   return { message: "Ta'minotchi o'chirildi" };
 };
 
@@ -157,16 +139,9 @@ const updateMaterial = async (body, id) => {
 };
 const deleteMaterial = async (id) => {
   await getMaterial(id);
-  const used = await db("material_purchase_items")
-    .where({ raw_material_id: id })
-    .first();
-  if (used)
-    throw new BadRequestError(
-      "Homashyoda xarid tarixi bor, o'chirib bo'lmaydi",
-    );
-  await db("raw_materials")
-    .where({ id })
-    .update({ is_deleted: true, updated_at: db.fn.now() });
+  const used = await db("material_purchase_items").where({ raw_material_id: id }).first();
+  if (used) throw new BadRequestError("Homashyoda xarid tarixi bor, o'chirib bo'lmaydi");
+  await db("raw_materials").where({ id }).update({ is_deleted: true, updated_at: db.fn.now() });
   return { message: "Homashyo o'chirildi" };
 };
 
@@ -235,25 +210,19 @@ const createPurchase = async (body, actor) => {
 const updatePurchase = async (body, id) => {
   const existing = await formatPurchase(id);
   const supplierId =
-    body.supplier_id !== undefined
-      ? Number(body.supplier_id)
-      : Number(existing.supplier_id);
+    body.supplier_id !== undefined ? Number(body.supplier_id) : Number(existing.supplier_id);
   await getSupplier(supplierId);
   const items = body.items
     ? await calculateItems(body.items)
-    : existing.items.map(
-        ({ raw_material_id, quantity, unit_price, total_amount }) => ({
-          raw_material_id,
-          quantity: Number(quantity),
-          unit_price: Number(unit_price),
-          total_amount: Number(total_amount),
-        }),
-      );
+    : existing.items.map(({ raw_material_id, quantity, unit_price, total_amount }) => ({
+        raw_material_id,
+        quantity: Number(quantity),
+        unit_price: Number(unit_price),
+        total_amount: Number(total_amount),
+      }));
   const subtotal = items.reduce((sum, item) => sum + item.total_amount, 0);
   const paid =
-    body.paid_amount !== undefined
-      ? Number(body.paid_amount)
-      : Number(existing.paid_amount);
+    body.paid_amount !== undefined ? Number(body.paid_amount) : Number(existing.paid_amount);
   return db.transaction(async (trx) => {
     await trx("material_purchases")
       .where({ id })
@@ -296,9 +265,7 @@ const listPurchases = async ({
     .join("suppliers as s", "s.id", "mp.supplier_id")
     .where("mp.is_deleted", false);
   if (q)
-    query.andWhere((qb) =>
-      qb.whereILike("s.name", `%${q}%`).orWhereILike("mp.note", `%${q}%`),
-    );
+    query.andWhere((qb) => qb.whereILike("s.name", `%${q}%`).orWhereILike("mp.note", `%${q}%`));
   if (supplier_id) query.andWhere("mp.supplier_id", Number(supplier_id));
   if (date_from) query.andWhere("mp.purchased_at", ">=", date_from);
   if (date_to) query.andWhere("mp.purchased_at", "<=", date_to);
@@ -341,9 +308,7 @@ const createSupplierPayment = async (body, actor) => {
   await getSupplier(Number(body.supplier_id));
   const balance = await supplierBalance({ supplier_id: body.supplier_id });
   if (Number(body.amount) > balance.debt_amount)
-    throw new BadRequestError(
-      `To'lov qarzdan oshmasin. Qarz: ${balance.debt_amount}`,
-    );
+    throw new BadRequestError(`To'lov qarzdan oshmasin. Qarz: ${balance.debt_amount}`);
   const [row] = await db("supplier_payments")
     .insert({
       supplier_id: Number(body.supplier_id),

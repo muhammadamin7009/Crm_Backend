@@ -1,15 +1,8 @@
 const db = require("../../db");
-const {
-  ensureCategory,
-  ensureUniqueSku,
-  emptyToNull,
-} = require("./helpers");
+const { ensureCategory, ensureUniqueSku, emptyToNull } = require("./helpers");
 
 const createProduct = async (body, actor) => {
-  await Promise.all([
-    ensureCategory(body.category_id),
-    ensureUniqueSku(body.sku),
-  ]);
+  await Promise.all([ensureCategory(body.category_id), ensureUniqueSku(body.sku)]);
 
   const [product] = await db("products")
     .insert({

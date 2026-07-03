@@ -4,9 +4,9 @@ class BadRequestError extends Error {
 
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, BadRequestError);
-    };
-  };
-};
+    }
+  }
+}
 
 class NotFoundError extends Error {
   constructor(msg) {
@@ -14,9 +14,9 @@ class NotFoundError extends Error {
 
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, NotFoundError);
-    };
-  };
-};
+    }
+  }
+}
 
 class UnauthorizedError extends Error {
   constructor(msg) {
@@ -24,9 +24,9 @@ class UnauthorizedError extends Error {
 
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, UnauthorizedError);
-    };
-  };
-};
+    }
+  }
+}
 
 class ForbiddenError extends Error {
   constructor(msg) {
@@ -34,13 +34,13 @@ class ForbiddenError extends Error {
 
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, ForbiddenError);
-    };
-  };
-};
+    }
+  }
+}
 
 module.exports = {
   BadRequestError,
   NotFoundError,
   UnauthorizedError,
-  ForbiddenError
+  ForbiddenError,
 };

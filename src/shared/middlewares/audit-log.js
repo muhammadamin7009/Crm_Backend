@@ -24,7 +24,10 @@ const getEntityType = (req) => {
 
 const getEntityId = (req) => {
   if (req.params.id) return String(req.params.id);
-  const candidate = req.path.split("/").filter(Boolean).find((part) => /^\d+$/.test(part));
+  const candidate = req.path
+    .split("/")
+    .filter(Boolean)
+    .find((part) => /^\d+$/.test(part));
   return candidate || null;
 };
 

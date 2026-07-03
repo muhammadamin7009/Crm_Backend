@@ -10,23 +10,8 @@ const {
 
 router.get("/categories", isLoggedIn, getCategories);
 router.get("/categories/:id", isLoggedIn, getCategory);
-router.post(
-  "/categories",
-  isLoggedIn,
-  hasRole("super_admin", "admin"),
-  createCategory,
-);
-router.patch(
-  "/categories/:id",
-  isLoggedIn,
-  hasRole("super_admin", "admin"),
-  patchCategory,
-);
-router.delete(
-  "/categories/:id",
-  isLoggedIn,
-  hasRole("super_admin", "admin"),
-  removeCategory,
-);
+router.post("/categories", isLoggedIn, hasRole("super_admin", "admin"), createCategory);
+router.patch("/categories/:id", isLoggedIn, hasRole("super_admin", "admin"), patchCategory);
+router.delete("/categories/:id", isLoggedIn, hasRole("super_admin", "admin"), removeCategory);
 
 module.exports = router;

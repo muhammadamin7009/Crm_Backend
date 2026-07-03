@@ -63,18 +63,14 @@ const getPricePerUnit = async (productId, departmentId) => {
     .first();
 
   if (!price) {
-    throw new BadRequestError(
-      "Bu mahsulot uchun tanlangan bo'lim narxi kiritilmagan",
-    );
+    throw new BadRequestError("Bu mahsulot uchun tanlangan bo'lim narxi kiritilmagan");
   }
 
   return Number(price.price_per_unit);
 };
 
 const getExistingOutput = async (id) => {
-  const output = await db("worker_outputs")
-    .where({ id, is_deleted: false })
-    .first();
+  const output = await db("worker_outputs").where({ id, is_deleted: false }).first();
 
   if (!output) throw new NotFoundError("Ish yozuvi topilmadi");
   return output;

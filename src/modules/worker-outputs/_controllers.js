@@ -59,10 +59,7 @@ const getWorkerOutputsSummary = async (req, res, next) => {
 const getWorkerOutput = async (req, res, next) => {
   try {
     httpValidator({ params: req.params }, showWorkerOutputSchema);
-    const result = await showWorkerOutputService(
-      { id: Number(req.params.id) },
-      req.user,
-    );
+    const result = await showWorkerOutputService({ id: Number(req.params.id) }, req.user);
     res.status(200).json(result);
   } catch (error) {
     next(error);
@@ -71,10 +68,7 @@ const getWorkerOutput = async (req, res, next) => {
 
 const patchWorkerOutput = async (req, res, next) => {
   try {
-    httpValidator(
-      { body: req.body, params: req.params },
-      updateWorkerOutputSchema,
-    );
+    httpValidator({ body: req.body, params: req.params }, updateWorkerOutputSchema);
     const result = await updateWorkerOutputService(req.body, {
       id: Number(req.params.id),
     });

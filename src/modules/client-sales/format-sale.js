@@ -48,8 +48,12 @@ const selectSaleFields = (query) =>
     "cs.paid_amount",
     db.raw("COALESCE(cpa.extra_paid_amount, 0) as extra_paid_amount"),
     db.raw("(cs.paid_amount + COALESCE(cpa.extra_paid_amount, 0)) as current_paid_amount"),
-    db.raw("(cs.total_amount - COALESCE(cra.returned_amount, 0) - cs.paid_amount - COALESCE(cpa.extra_paid_amount, 0)) as remaining_debt"),
-    db.raw("(cs.total_amount - COALESCE(cra.returned_amount, 0) - cs.paid_amount - COALESCE(cpa.extra_paid_amount, 0)) as debt_amount"),
+    db.raw(
+      "(cs.total_amount - COALESCE(cra.returned_amount, 0) - cs.paid_amount - COALESCE(cpa.extra_paid_amount, 0)) as remaining_debt",
+    ),
+    db.raw(
+      "(cs.total_amount - COALESCE(cra.returned_amount, 0) - cs.paid_amount - COALESCE(cpa.extra_paid_amount, 0)) as debt_amount",
+    ),
     "cs.debt_amount as initial_debt_amount",
     "cs.sold_at",
     "cs.note",

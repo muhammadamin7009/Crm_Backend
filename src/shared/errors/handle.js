@@ -1,11 +1,6 @@
 const express = require("express");
 const multer = require("multer");
-const {
-  BadRequestError,
-  UnauthorizedError,
-  ForbiddenError,
-  NotFoundError,
-} = require("./index");
+const { BadRequestError, UnauthorizedError, ForbiddenError, NotFoundError } = require("./index");
 
 /**
  *
@@ -20,10 +15,7 @@ module.exports = (err, req, res, next) => {
 
   if (err instanceof multer.MulterError) {
     status = 400;
-    message =
-      err.code === "LIMIT_FILE_SIZE"
-        ? "Rasm hajmi 5 MB dan oshmasligi kerak"
-        : err.message;
+    message = err.code === "LIMIT_FILE_SIZE" ? "Rasm hajmi 5 MB dan oshmasligi kerak" : err.message;
   } else if (err instanceof BadRequestError) {
     status = 400;
     message = err.message;

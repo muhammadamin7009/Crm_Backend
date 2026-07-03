@@ -1,8 +1,7 @@
 const db = require("../../db");
 const { BadRequestError, NotFoundError } = require("../../shared/errors");
 
-const formatMoney = (value) =>
-  new Intl.NumberFormat("uz-UZ").format(Number(value || 0));
+const formatMoney = (value) => new Intl.NumberFormat("uz-UZ").format(Number(value || 0));
 
 const getClient = async (clientId) => {
   const client = await db("users")
@@ -15,18 +14,14 @@ const getClient = async (clientId) => {
 };
 
 const getClientSale = async (saleId) => {
-  const sale = await db("client_sales")
-    .where({ id: saleId, is_deleted: false })
-    .first();
+  const sale = await db("client_sales").where({ id: saleId, is_deleted: false }).first();
 
   if (!sale) throw new NotFoundError("Savdo yozuvi topilmadi");
   return sale;
 };
 
 const getExistingPayment = async (id) => {
-  const payment = await db("client_payments")
-    .where({ id, is_deleted: false })
-    .first();
+  const payment = await db("client_payments").where({ id, is_deleted: false }).first();
 
   if (!payment) throw new NotFoundError("Client to'lovi topilmadi");
   return payment;
@@ -69,17 +64,11 @@ const getClientRemainingDebt = async ({ clientId, saleId, excludePaymentId }) =>
     total_amount: totalAmount,
     returned_amount: returnedAmount,
     paid_amount: initialPaidAmount + extraPaidAmount,
-    debt_amount:
-      totalAmount - returnedAmount - initialPaidAmount - extraPaidAmount,
+    debt_amount: totalAmount - returnedAmount - initialPaidAmount - extraPaidAmount,
   };
 };
 
-const assertPaymentDoesNotExceedDebt = async ({
-  clientId,
-  saleId,
-  amount,
-  excludePaymentId,
-}) => {
+const assertPaymentDoesNotExceedDebt = async ({ clientId, saleId, amount, excludePaymentId }) => {
   const balance = await getClientRemainingDebt({
     clientId,
     saleId,

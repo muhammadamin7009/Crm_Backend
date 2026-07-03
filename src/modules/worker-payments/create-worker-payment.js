@@ -4,8 +4,7 @@ const { getWorker } = require("./helpers");
 const { getFormattedPayment } = require("./format-payment");
 const { getAdvanceBalance } = require("../worker-advances/helpers");
 
-const formatMoney = (value) =>
-  new Intl.NumberFormat("uz-UZ").format(Number(value || 0));
+const formatMoney = (value) => new Intl.NumberFormat("uz-UZ").format(Number(value || 0));
 
 const assertPeriod = ({ period_from, period_to }) => {
   if (period_from && period_to && new Date(period_from) > new Date(period_to)) {
@@ -14,11 +13,9 @@ const assertPeriod = ({ period_from, period_to }) => {
 };
 
 const getRemainingBalance = async ({ workerId, excludePaymentId }) => {
-  const earnedQuery = db("worker_outputs")
-    .where({ worker_id: workerId, is_deleted: false });
+  const earnedQuery = db("worker_outputs").where({ worker_id: workerId, is_deleted: false });
 
-  const paidQuery = db("worker_payments")
-    .where({ worker_id: workerId, is_deleted: false });
+  const paidQuery = db("worker_payments").where({ worker_id: workerId, is_deleted: false });
 
   if (excludePaymentId) {
     paidQuery.andWhereNot("id", excludePaymentId);
@@ -34,7 +31,10 @@ const getRemainingBalance = async ({ workerId, excludePaymentId }) => {
   ]);
 
   const totalEarned = Number(earned.total_earned || 0);
-  const totalPaid = Number(paid.cash_paid || 0) + Number(paid.advance_deducted || 0) + Number(paid.other_deducted || 0);
+  const totalPaid =
+    Number(paid.cash_paid || 0) +
+    Number(paid.advance_deducted || 0) +
+    Number(paid.other_deducted || 0);
 
   return {
     total_earned: totalEarned,
@@ -63,9 +63,7 @@ const assertPaymentDoesNotExceedBalance = async ({
         ? ` Hozir ortiqcha to'langan summa: ${formatMoney(overpaid)} so'm.`
         : "";
 
-      throw new BadRequestError(
-        `Ishchining qolgan ish haqi yo'q.${detail}`,
-      );
+      throw new BadRequestError(`Ishchining qolgan ish haqi yo'q.${detail}`);
     }
 
     throw new BadRequestError(
@@ -90,7 +88,9 @@ const createWorkerPayment = async (body, actor) => {
   if (advanceDeduction > 0) {
     const advanceBalance = await getAdvanceBalance(Number(body.worker_id));
     if (advanceDeduction > advanceBalance.remaining_advance) {
-      throw new BadRequestError(`Avansdan ushlanma qolgan avansdan oshmasin. Qolgan avans: ${formatMoney(advanceBalance.remaining_advance)} so'm`);
+      throw new BadRequestError(
+        `Avansdan ushlanma qolgan avansdan oshmasin. Qolgan avans: ${formatMoney(advanceBalance.remaining_advance)} so'm`,
+      );
     }
   }
 

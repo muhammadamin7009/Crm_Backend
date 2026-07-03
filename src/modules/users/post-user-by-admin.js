@@ -16,9 +16,7 @@ const createByAdmin = async ({
     throw new BadRequestError("super_admin role berib bo‘lmaydi");
   }
 
-  const existing = await db("users")
-    .where({ username, is_deleted: false })
-    .first();
+  const existing = await db("users").where({ username, is_deleted: false }).first();
 
   if (existing) throw new BadRequestError("Username already exists");
 
@@ -35,15 +33,7 @@ const createByAdmin = async ({
       role,
       is_deleted: false,
     })
-    .returning([
-      "id",
-      "first_name",
-      "last_name",
-      "username",
-      "role",
-      "phone",
-      "created_at",
-    ]);
+    .returning(["id", "first_name", "last_name", "username", "role", "phone", "created_at"]);
 
   return { new_user: user };
 };

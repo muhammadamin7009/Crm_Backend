@@ -44,10 +44,7 @@ const getCategory = async (req, res, next) => {
 
 const patchCategory = async (req, res, next) => {
   try {
-    httpValidator(
-      { body: req.body, params: req.params },
-      updateCategorySchema,
-    );
+    httpValidator({ body: req.body, params: req.params }, updateCategorySchema);
     const result = await updateCategoryService(req.body, {
       id: Number(req.params.id),
     });

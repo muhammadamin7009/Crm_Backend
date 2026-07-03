@@ -1,17 +1,11 @@
 const db = require("../../db");
-const {
-  emptyToNull,
-  getExistingDepartment,
-  ensureUniqueDepartment,
-} = require("./helpers");
+const { emptyToNull, getExistingDepartment, ensureUniqueDepartment } = require("./helpers");
 
 const updateDepartment = async (body, { id }) => {
   const existing = await getExistingDepartment(id);
 
-  const nameChanged =
-    body.name && body.name.toLowerCase() !== existing.name.toLowerCase();
-  const codeChanged =
-    body.code && body.code.toLowerCase() !== existing.code.toLowerCase();
+  const nameChanged = body.name && body.name.toLowerCase() !== existing.name.toLowerCase();
+  const codeChanged = body.code && body.code.toLowerCase() !== existing.code.toLowerCase();
 
   if (nameChanged || codeChanged) {
     await ensureUniqueDepartment({

@@ -44,10 +44,7 @@ const getDepartment = async (req, res, next) => {
 
 const patchDepartment = async (req, res, next) => {
   try {
-    httpValidator(
-      { body: req.body, params: req.params },
-      updateDepartmentSchema,
-    );
+    httpValidator({ body: req.body, params: req.params }, updateDepartmentSchema);
     const result = await updateDepartmentService(req.body, {
       id: Number(req.params.id),
     });

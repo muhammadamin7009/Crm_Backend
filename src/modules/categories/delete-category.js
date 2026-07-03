@@ -2,15 +2,11 @@ const db = require("../../db");
 const { BadRequestError, NotFoundError } = require("../../shared/errors");
 
 const deleteCategory = async ({ id }) => {
-  const category = await db("categories")
-    .where({ id, is_deleted: false })
-    .first();
+  const category = await db("categories").where({ id, is_deleted: false }).first();
 
   if (!category) throw new NotFoundError("Kategoriya topilmadi");
 
-  const product = await db("products")
-    .where({ category_id: id, is_deleted: false })
-    .first();
+  const product = await db("products").where({ category_id: id, is_deleted: false }).first();
 
   if (product) {
     throw new BadRequestError(

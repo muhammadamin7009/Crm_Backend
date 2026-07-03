@@ -19,12 +19,7 @@ const ensureDepartment = async (id) => {
   return department;
 };
 
-const listPositions = async ({
-  q = "",
-  is_active,
-  limit = 100,
-  offset = 0,
-}) => {
+const listPositions = async ({ q = "", is_active, limit = 100, offset = 0 }) => {
   const query = db("positions as p")
     .leftJoin("departments as d", "d.id", "p.department_id")
     .where("p.is_deleted", false);
@@ -50,16 +45,18 @@ const listPositions = async ({
 };
 const createPosition = async (body) => {
   await ensureDepartment(body.department_id);
-  return { position: (
-    await db("positions")
-      .insert({
-        name: body.name,
-        department_id: body.department_id ? Number(body.department_id) : null,
-        description: clean(body.description),
-        is_active: body.is_active ?? true,
-      })
-      .returning("*")
-  )[0] };
+  return {
+    position: (
+      await db("positions")
+        .insert({
+          name: body.name,
+          department_id: body.department_id ? Number(body.department_id) : null,
+          description: clean(body.description),
+          is_active: body.is_active ?? true,
+        })
+        .returning("*")
+    )[0],
+  };
 };
 const updatePosition = async (body, id) => {
   const row = await db("positions").where({ id, is_deleted: false }).first();
@@ -70,10 +67,7 @@ const updatePosition = async (body, id) => {
     .update({
       ...body,
       department_id: body.department_id ? Number(body.department_id) : null,
-      description:
-        body.description !== undefined
-          ? clean(body.description)
-          : row.description,
+      description: body.description !== undefined ? clean(body.description) : row.description,
       updated_at: db.fn.now(),
     })
     .returning("*");
@@ -128,9 +122,7 @@ const listProfiles = async ({ q = "", is_active, limit = 100, offset = 0 }) => {
   };
 };
 const createProfile = async (body) => {
-  const user = await db("users")
-    .where({ id: body.user_id, is_deleted: false })
-    .first();
+  const user = await db("users").where({ id: body.user_id, is_deleted: false }).first();
   if (!user) throw new NotFoundError("User topilmadi");
   if (!["super_admin", "admin", "worker"].includes(user.role))
     throw new BadRequestError("Faqat korxona hodimini employee qilish mumkin");
@@ -163,15 +155,11 @@ const updateProfile = async (body, id) => {
 };
 
 const createAgreement = async (body, actor) => {
-  const employee = await db("employee_profiles")
-    .where({ id: body.employee_id })
-    .first();
+  const employee = await db("employee_profiles").where({ id: body.employee_id }).first();
   if (!employee) throw new NotFoundError("Hodim profili topilmadi");
   const from = new Date(body.effective_from);
   if (body.effective_to && from > new Date(body.effective_to))
-    throw new BadRequestError(
-      "Kelishuv boshlanish sanasi tugash sanasidan katta bo'lmasin",
-    );
+    throw new BadRequestError("Kelishuv boshlanish sanasi tugash sanasidan katta bo'lmasin");
   const previousTo = new Date(from);
   previousTo.setDate(previousTo.getDate() - 1);
   await db("employee_agreements")

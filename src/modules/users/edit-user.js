@@ -1,10 +1,6 @@
 const db = require("../../db");
 const bcrypt = require("bcryptjs");
-const {
-  NotFoundError,
-  BadRequestError,
-  ForbiddenError,
-} = require("../../shared/errors");
+const { NotFoundError, BadRequestError, ForbiddenError } = require("../../shared/errors");
 
 const ROLE = {
   SUPER: "super_admin",
@@ -39,9 +35,7 @@ const editUser = async (body, { id }, actor) => {
   // Admin -> super_admin yoki admin ni edit qila olmaydi
   if (!isSelf && actorRole === ROLE.ADMIN) {
     if (target.role === ROLE.SUPER || target.role === ROLE.ADMIN) {
-      throw new ForbiddenError(
-        "Admin -- Super_admin yoki boshqa adminni edit qila olmaydi",
-      );
+      throw new ForbiddenError("Admin -- Super_admin yoki boshqa adminni edit qila olmaydi");
     }
   }
 
@@ -56,9 +50,7 @@ const editUser = async (body, { id }, actor) => {
 
   // Hech kim (hatto super_admin ham) yangi super_admin tayinlay olmaydi
   if (patch.role === ROLE.SUPER) {
-    throw new BadRequestError(
-      "super_admin role berib bo'lmaydi (loyihada 1 ta)",
-    );
+    throw new BadRequestError("super_admin role berib bo'lmaydi (loyihada 1 ta)");
   }
 
   // Super_admin o'z roleni o'zgartira olmaydi (explicit)
@@ -75,9 +67,7 @@ const editUser = async (body, { id }, actor) => {
 
   // 3) username unique check (is_deleted=false)
   if (patch.username && patch.username !== target.username) {
-    const dup = await db("users")
-      .where({ username: patch.username, is_deleted: false })
-      .first();
+    const dup = await db("users").where({ username: patch.username, is_deleted: false }).first();
 
     if (dup) throw new BadRequestError("Username already exists");
   }

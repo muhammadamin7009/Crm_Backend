@@ -1,8 +1,5 @@
 const db = require("../../db");
-const {
-  BadRequestError,
-  NotFoundError,
-} = require("../../shared/errors");
+const { BadRequestError, NotFoundError } = require("../../shared/errors");
 
 const getDeletedUser = async (id) => {
   const user = await db("users")
@@ -26,9 +23,7 @@ const restoreUser = async ({ id }) => {
     .first();
 
   if (duplicate) {
-    throw new BadRequestError(
-      "Bu username bilan faol hodim mavjud. Avval username'ni tahrirlang.",
-    );
+    throw new BadRequestError("Bu username bilan faol hodim mavjud. Avval username'ni tahrirlang.");
   }
 
   const [restored] = await db("users")

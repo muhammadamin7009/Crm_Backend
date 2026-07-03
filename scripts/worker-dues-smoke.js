@@ -18,32 +18,40 @@ const run = async () => {
         ),
       ),
     );
-    const breakdownsMatch = breakdowns.every(({ balance }) =>
-      balance.previous_remaining + balance.new_earnings === balance.remaining,
+    const breakdownsMatch = breakdowns.every(
+      ({ balance }) => balance.previous_remaining + balance.new_earnings === balance.remaining,
     );
 
-    console.log(JSON.stringify({
-      workers_with_due: result.worker_dues.length,
-      dues: result.worker_dues.map((worker) => ({
-        worker_id: worker.worker_id,
-        name: `${worker.first_name} ${worker.last_name}`,
-        remaining: worker.remaining,
-      })),
-      breakdowns: breakdowns.map(({ worker_id, balance }) => ({
-        worker_id,
-        previous_remaining: balance.previous_remaining,
-        new_earnings: balance.new_earnings,
-        remaining: balance.remaining,
-      })),
-      only_positive_balances: !invalid,
-      breakdowns_match_remaining: breakdownsMatch,
-    }, null, 2));
+    console.log(
+      JSON.stringify(
+        {
+          workers_with_due: result.worker_dues.length,
+          dues: result.worker_dues.map((worker) => ({
+            worker_id: worker.worker_id,
+            name: `${worker.first_name} ${worker.last_name}`,
+            remaining: worker.remaining,
+          })),
+          breakdowns: breakdowns.map(({ worker_id, balance }) => ({
+            worker_id,
+            previous_remaining: balance.previous_remaining,
+            new_earnings: balance.new_earnings,
+            remaining: balance.remaining,
+          })),
+          only_positive_balances: !invalid,
+          breakdowns_match_remaining: breakdownsMatch,
+        },
+        null,
+        2,
+      ),
+    );
 
     if (invalid || !breakdownsMatch) process.exitCode = 1;
   });
 };
 
-run().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-}).finally(() => db.destroy());
+run()
+  .catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  })
+  .finally(() => db.destroy());

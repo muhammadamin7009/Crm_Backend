@@ -40,16 +40,15 @@ const getClientBalance = async ({ client_id, date_from, date_to }) => {
   const totalAmount = Number(sales.total_amount || 0);
   const returnedAmount = Number(returns.returned_amount || 0);
   const paidAmount =
-    Number(sales.initial_paid_amount || 0) +
-    Number(payments.extra_paid_amount || 0);
+    Number(sales.initial_paid_amount || 0) + Number(payments.extra_paid_amount || 0);
 
   return {
     client_id: client_id ? Number(client_id) : null,
     balance: {
       total_amount: totalAmount,
       paid_amount: paidAmount,
-    returned_amount: returnedAmount,
-    debt_amount: totalAmount - returnedAmount - paidAmount,
+      returned_amount: returnedAmount,
+      debt_amount: totalAmount - returnedAmount - paidAmount,
     },
   };
 };

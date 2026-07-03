@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
-    "backup": "node scripts/backup-database.js"
+    "backup": "node scripts/backup-database.js",
+    "format": "prettier --write ."
   },
   "keywords": [],
   "author": "",
@@ -21,5 +22,8 @@
     "knex": "^2.4.2",
     "multer": "^2.2.0",
     "pg": "^8.11.1"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.4"
   }
 }

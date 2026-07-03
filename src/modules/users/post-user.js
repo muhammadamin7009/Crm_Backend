@@ -2,19 +2,12 @@ const db = require("../../db");
 const bcrypt = require("bcryptjs");
 const { BadRequestError } = require("../../shared/errors");
 
-const registration = async ({
-  first_name,
-  last_name,
-  username,
-  password,
-  user_image,
-  phone = null,
-}, company) => {
+const registration = async (
+  { first_name, last_name, username, password, user_image, phone = null },
+  company,
+) => {
   // 1️⃣ username unique tekshiramiz
-  const existing = await db("users")
-    .where({ username })
-    .andWhere({ is_deleted: false })
-    .first();
+  const existing = await db("users").where({ username }).andWhere({ is_deleted: false }).first();
 
   if (existing) {
     throw new BadRequestError("Username already exists");
@@ -36,15 +29,7 @@ const registration = async ({
       is_deleted: false,
       company_id: company.id,
     })
-    .returning([
-      "id",
-      "first_name",
-      "last_name",
-      "username",
-      "role",
-      "phone",
-      "created_at",
-    ]);
+    .returning(["id", "first_name", "last_name", "username", "role", "phone", "created_at"]);
 
   // 4️⃣ password qaytarmaymiz
   return { new_user: user };

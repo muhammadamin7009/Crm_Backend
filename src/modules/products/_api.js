@@ -25,9 +25,7 @@ const upload = multer({
     const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
 
     if (!allowedTypes.includes(file.mimetype)) {
-      return callback(
-        new BadRequestError("Faqat JPEG, PNG yoki WebP rasm yuklash mumkin"),
-      );
+      return callback(new BadRequestError("Faqat JPEG, PNG yoki WebP rasm yuklash mumkin"));
     }
 
     callback(null, true);
@@ -36,24 +34,9 @@ const upload = multer({
 
 router.get("/products", isLoggedIn, getProducts);
 router.get("/products/:id", isLoggedIn, getProduct);
-router.post(
-  "/products",
-  isLoggedIn,
-  hasRole("super_admin", "admin"),
-  createProduct,
-);
-router.patch(
-  "/products/:id",
-  isLoggedIn,
-  hasRole("super_admin", "admin"),
-  patchProduct,
-);
-router.delete(
-  "/products/:id",
-  isLoggedIn,
-  hasRole("super_admin", "admin"),
-  removeProduct,
-);
+router.post("/products", isLoggedIn, hasRole("super_admin", "admin"), createProduct);
+router.patch("/products/:id", isLoggedIn, hasRole("super_admin", "admin"), patchProduct);
+router.delete("/products/:id", isLoggedIn, hasRole("super_admin", "admin"), removeProduct);
 router.get(
   "/products/:id/department-prices",
   isLoggedIn,
@@ -93,4 +76,3 @@ router.delete(
 );
 
 module.exports = router;
-

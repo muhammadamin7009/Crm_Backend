@@ -9,10 +9,16 @@ exports.up = async function (knex) {
     $$;
   `);
   await knex.raw("GRANT USAGE ON SCHEMA public TO crm_tenant_user");
-  await knex.raw("GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO crm_tenant_user");
+  await knex.raw(
+    "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO crm_tenant_user",
+  );
   await knex.raw("GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO crm_tenant_user");
-  await knex.raw("ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO crm_tenant_user");
-  await knex.raw("ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO crm_tenant_user");
+  await knex.raw(
+    "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO crm_tenant_user",
+  );
+  await knex.raw(
+    "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO crm_tenant_user",
+  );
 };
 
 exports.down = async function (knex) {

@@ -7,16 +7,12 @@ const { getExistingProduct } = require("./helpers");
 const deleteProductImage = async ({ id, imageId }) => {
   await getExistingProduct(id);
 
-  const image = await db("product_images")
-    .where({ id: imageId, product_id: id })
-    .first();
+  const image = await db("product_images").where({ id: imageId, product_id: id }).first();
 
   if (!image) throw new NotFoundError("Mahsulot rasmi topilmadi");
 
   await db.transaction(async (trx) => {
-    await trx("product_images")
-      .where({ id: imageId, product_id: id })
-      .delete();
+    await trx("product_images").where({ id: imageId, product_id: id }).delete();
 
     if (image.is_primary) {
       const nextImage = await trx("product_images")
@@ -25,15 +21,11 @@ const deleteProductImage = async ({ id, imageId }) => {
         .first();
 
       if (nextImage) {
-        await trx("product_images")
-          .where({ id: nextImage.id })
-          .update({ is_primary: true });
+        await trx("product_images").where({ id: nextImage.id }).update({ is_primary: true });
       }
     }
 
-    await trx("products")
-      .where({ id })
-      .update({ updated_at: trx.fn.now() });
+    await trx("products").where({ id }).update({ updated_at: trx.fn.now() });
   });
 
   if (image.image_url?.startsWith("/uploads/")) {

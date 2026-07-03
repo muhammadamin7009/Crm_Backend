@@ -24,9 +24,7 @@ const getProduct = async (productId) => {
 };
 
 const getExistingSale = async (id) => {
-  const sale = await db("client_sales")
-    .where({ id, is_deleted: false })
-    .first();
+  const sale = await db("client_sales").where({ id, is_deleted: false }).first();
 
   if (!sale) throw new NotFoundError("Savdo yozuvi topilmadi");
   return sale;

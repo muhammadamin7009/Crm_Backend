@@ -8,9 +8,7 @@ const emptyToNull = (value) => {
 };
 
 const getExistingDepartment = async (id) => {
-  const department = await db("departments")
-    .where({ id, is_deleted: false })
-    .first();
+  const department = await db("departments").where({ id, is_deleted: false }).first();
 
   if (!department) throw new NotFoundError("Bo'lim topilmadi");
 

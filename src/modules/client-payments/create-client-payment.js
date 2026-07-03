@@ -1,9 +1,5 @@
 const db = require("../../db");
-const {
-  assertPaymentDoesNotExceedDebt,
-  getClient,
-  getClientSale,
-} = require("./helpers");
+const { assertPaymentDoesNotExceedDebt, getClient, getClientSale } = require("./helpers");
 const { getFormattedPayment } = require("./format-payment");
 const { BadRequestError } = require("../../shared/errors");
 

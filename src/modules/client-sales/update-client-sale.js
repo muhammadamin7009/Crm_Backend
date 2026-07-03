@@ -5,8 +5,10 @@ const { getFormattedSale } = require("./format-sale");
 const updateClientSale = async (body, { id }) => {
   const existing = await getExistingSale(id);
 
-  const clientId = body.client_id !== undefined ? Number(body.client_id) : Number(existing.client_id);
-  const productId = body.product_id !== undefined ? Number(body.product_id) : Number(existing.product_id);
+  const clientId =
+    body.client_id !== undefined ? Number(body.client_id) : Number(existing.client_id);
+  const productId =
+    body.product_id !== undefined ? Number(body.product_id) : Number(existing.product_id);
   const quantity = body.quantity !== undefined ? Number(body.quantity) : Number(existing.quantity);
 
   await getClient(clientId);

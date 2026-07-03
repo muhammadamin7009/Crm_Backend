@@ -46,11 +46,7 @@ const listWorkerPayments = async (filters, actor) => {
   const query = applyActorScope(formatPaymentQuery(), actor);
   applyFilters(query, filters);
 
-  const countQuery = query
-    .clone()
-    .clearSelect()
-    .countDistinct({ count: "wp.id" })
-    .first();
+  const countQuery = query.clone().clearSelect().countDistinct({ count: "wp.id" }).first();
 
   const totalQuery = query
     .clone()
@@ -73,7 +69,10 @@ const listWorkerPayments = async (filters, actor) => {
   return {
     worker_payments: workerPayments,
     totals: {
-      total_paid: Number(totals.cash_paid || 0) + Number(totals.advance_deducted || 0) + Number(totals.other_deducted || 0),
+      total_paid:
+        Number(totals.cash_paid || 0) +
+        Number(totals.advance_deducted || 0) +
+        Number(totals.other_deducted || 0),
       cash_paid: Number(totals.cash_paid || 0),
       advance_deducted: Number(totals.advance_deducted || 0),
       other_deducted: Number(totals.other_deducted || 0),

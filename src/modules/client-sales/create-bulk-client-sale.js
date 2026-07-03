@@ -11,9 +11,8 @@ const createBulkClientSale = async (body, actor) => {
   for (const item of body.items) {
     const product = await getProduct(Number(item.product_id));
     const quantity = Number(item.quantity);
-    const unitPrice = item.unit_price !== undefined
-      ? Number(item.unit_price)
-      : Number(product.sale_price);
+    const unitPrice =
+      item.unit_price !== undefined ? Number(item.unit_price) : Number(product.sale_price);
     const totalAmount = Number((quantity * unitPrice).toFixed(2));
     prepared.push({
       product_id: Number(item.product_id),

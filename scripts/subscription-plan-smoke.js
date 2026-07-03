@@ -15,7 +15,12 @@ const run = async () => {
       slug,
       plan_code: "plus",
       subscription_ends_at: null,
-      super_admin: { first_name: "Plan", last_name: "Admin", username: "planadmin", password: "test12345" },
+      super_admin: {
+        first_name: "Plan",
+        last_name: "Admin",
+        username: "planadmin",
+        password: "test12345",
+      },
     });
     company = created.company;
     const hash = await bcrypt.hash("test12345", 4);
@@ -34,8 +39,15 @@ const run = async () => {
       }
     });
 
-    const admin = await db.root("users").where({ company_id: company.id, role: "super_admin" }).first();
-    const token = jwt.sign({ id: admin.id, role: admin.role, company_id: company.id, company_slug: slug }, config.jwt.secret, { expiresIn: "5m" });
+    const admin = await db
+      .root("users")
+      .where({ company_id: company.id, role: "super_admin" })
+      .first();
+    const token = jwt.sign(
+      { id: admin.id, role: admin.role, company_id: company.id, company_slug: slug },
+      config.jwt.secret,
+      { expiresIn: "5m" },
+    );
     const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
     const [products, clientSales, extraUser] = await Promise.all([
       fetch(`${baseUrl}/api/${slug}/products?limit=1`, { headers }),
@@ -43,7 +55,13 @@ const run = async () => {
       fetch(`${baseUrl}/api/${slug}/users/staff`, {
         method: "POST",
         headers,
-        body: JSON.stringify({ first_name: "Extra", last_name: "User", username: "extrauser", password: "test12345", role: "worker" }),
+        body: JSON.stringify({
+          first_name: "Extra",
+          last_name: "User",
+          username: "extrauser",
+          password: "test12345",
+          role: "worker",
+        }),
       }),
     ]);
 
@@ -56,7 +74,7 @@ const run = async () => {
     console.log(JSON.stringify(result, null, 2));
     if (!result.passed) process.exitCode = 1;
   } finally {
-    const found = company || await db.root("companies").where({ slug }).first();
+    const found = company || (await db.root("companies").where({ slug }).first());
     if (found) {
       await db.root("users").where({ company_id: found.id }).delete();
       await db.root("companies").where({ id: found.id }).delete();
@@ -64,7 +82,9 @@ const run = async () => {
   }
 };
 
-run().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-}).finally(() => db.destroy());
+run()
+  .catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  })
+  .finally(() => db.destroy());

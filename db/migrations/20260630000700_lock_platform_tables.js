@@ -14,6 +14,8 @@ exports.up = async function (knex) {
 
 exports.down = async function (knex) {
   for (const tableName of PLATFORM_TABLES) {
-    await knex.raw("GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE ?? TO crm_tenant_user", [tableName]);
+    await knex.raw("GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE ?? TO crm_tenant_user", [
+      tableName,
+    ]);
   }
 };

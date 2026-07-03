@@ -1,14 +1,17 @@
 const db = require("../../db");
 
-const listUsers = async ({
-  q,
-  role,
-  is_deleted = false,
-  limit = 20,
-  offset = 0,
-  sort_by = "created_at",
-  sort_order = "desc",
-}, actor) => {
+const listUsers = async (
+  {
+    q,
+    role,
+    is_deleted = false,
+    limit = 20,
+    offset = 0,
+    sort_by = "created_at",
+    sort_order = "desc",
+  },
+  actor,
+) => {
   if (actor?.role === "worker") {
     const internalRoles = ["super_admin", "admin", "worker"];
     const query = db("users as u")
@@ -31,24 +34,31 @@ const listUsers = async ({
     const countQuery = query.clone().clearSelect().countDistinct({ count: "u.id" }).first();
     const sortColumn = sort_by === "updated_at" ? "u.updated_at" : "u.created_at";
     const [users, { count }] = await Promise.all([
-      query.clone().select(
-        "u.id",
-        "u.first_name",
-        "u.last_name",
-        "u.user_image",
-        "u.role",
-        "p.name as position_name",
-        "d.name as department_name",
-      ).orderBy(sortColumn, sort_order).limit(Number(limit)).offset(Number(offset)),
+      query
+        .clone()
+        .select(
+          "u.id",
+          "u.first_name",
+          "u.last_name",
+          "u.user_image",
+          "u.role",
+          "p.name as position_name",
+          "d.name as department_name",
+        )
+        .orderBy(sortColumn, sort_order)
+        .limit(Number(limit))
+        .offset(Number(offset)),
       countQuery,
     ]);
 
-    return { users, pageInfo: { total: Number(count), offset: Number(offset), limit: Number(limit) } };
+    return {
+      users,
+      pageInfo: { total: Number(count), offset: Number(offset), limit: Number(limit) },
+    };
   }
 
   const showDeleted =
-    actor?.role === "super_admin" &&
-    (is_deleted === true || is_deleted === "true");
+    actor?.role === "super_admin" && (is_deleted === true || is_deleted === "true");
   const query = db("users")
     .where({ is_deleted: showDeleted })
     .select(
@@ -76,17 +86,10 @@ const listUsers = async ({
 
   if (role) query.andWhere("role", role);
 
-  const countQuery = query
-    .clone()
-    .clearSelect()
-    .count({ count: "id" })
-    .first();
+  const countQuery = query.clone().clearSelect().count({ count: "id" }).first();
 
   const [users, { count }] = await Promise.all([
-    query
-      .orderBy(sort_by, sort_order)
-      .limit(Number(limit))
-      .offset(Number(offset)),
+    query.orderBy(sort_by, sort_order).limit(Number(limit)).offset(Number(offset)),
     countQuery,
   ]);
 

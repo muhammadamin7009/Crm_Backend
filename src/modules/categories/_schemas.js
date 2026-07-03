@@ -30,9 +30,7 @@ exports.listCategoriesSchema = {
     is_active: Joi.boolean(),
     limit: Joi.number().integer().min(1).max(100).default(20),
     offset: Joi.number().integer().min(0).default(0),
-    sort_by: Joi.string()
-      .valid("name", "created_at", "updated_at")
-      .default("created_at"),
+    sort_by: Joi.string().valid("name", "created_at", "updated_at").default("created_at"),
     sort_order: Joi.string().valid("asc", "desc").default("desc"),
   }),
 };

@@ -2,9 +2,7 @@ const db = require("../../db");
 const { BadRequestError, NotFoundError } = require("../../shared/errors");
 
 const updateCategory = async (body, { id }) => {
-  const existing = await db("categories")
-    .where({ id, is_deleted: false })
-    .first();
+  const existing = await db("categories").where({ id, is_deleted: false }).first();
 
   if (!existing) throw new NotFoundError("Kategoriya topilmadi");
 

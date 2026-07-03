@@ -23,7 +23,19 @@ const run = async () => {
     company = created.company;
     const listed = await platform.listCompanies();
     const row = listed.companies.find((item) => item.slug === slug);
-    console.log(JSON.stringify({ created: Boolean(company), super_admin_created: Boolean(created.super_admin), listed: Boolean(row), plan_code: row?.plan_code, users_count: Number(row?.users_count || 0) }, null, 2));
+    console.log(
+      JSON.stringify(
+        {
+          created: Boolean(company),
+          super_admin_created: Boolean(created.super_admin),
+          listed: Boolean(row),
+          plan_code: row?.plan_code,
+          users_count: Number(row?.users_count || 0),
+        },
+        null,
+        2,
+      ),
+    );
     if (row?.plan_code !== "pro") process.exitCode = 1;
   } finally {
     const found = company || (await db.root("companies").where({ slug }).first());
@@ -34,4 +46,9 @@ const run = async () => {
   }
 };
 
-run().catch((error) => { console.error(error); process.exitCode = 1; }).finally(() => db.destroy());
+run()
+  .catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  })
+  .finally(() => db.destroy());

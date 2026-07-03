@@ -4,7 +4,9 @@ const { BadRequestError, ForbiddenError, NotFoundError } = require("../../shared
 const isManager = (actor) => ["super_admin", "admin"].includes(actor?.role);
 
 const getWorker = async (workerId) => {
-  const worker = await db("users").where({ id: workerId, is_deleted: false, role: "worker" }).first();
+  const worker = await db("users")
+    .where({ id: workerId, is_deleted: false, role: "worker" })
+    .first();
   if (!worker) throw new BadRequestError("Worker role'dagi hodim topilmadi");
   return worker;
 };
@@ -21,7 +23,8 @@ const resolveWorkerId = async (requestedWorkerId, actor) => {
     if (workerId) await getWorker(workerId);
     return workerId;
   }
-  if (actor?.role !== "worker") throw new ForbiddenError("Avans ma'lumotini ko'rishga ruxsatingiz yo'q");
+  if (actor?.role !== "worker")
+    throw new ForbiddenError("Avans ma'lumotini ko'rishga ruxsatingiz yo'q");
   if (requestedWorkerId && Number(requestedWorkerId) !== Number(actor.id)) {
     throw new ForbiddenError("Boshqa ishchi avansini ko'ra olmaysiz");
   }
@@ -43,7 +46,11 @@ const getAdvanceBalance = async (workerId, excludeAdvanceId = null) => {
   ]);
   const totalAdvance = Number(advances.total_advance || 0);
   const totalDeducted = Number(deductions.total_deducted || 0);
-  return { total_advance: totalAdvance, total_deducted: totalDeducted, remaining_advance: totalAdvance - totalDeducted };
+  return {
+    total_advance: totalAdvance,
+    total_deducted: totalDeducted,
+    remaining_advance: totalAdvance - totalDeducted,
+  };
 };
 
 module.exports = { getAdvanceBalance, getExistingAdvance, getWorker, isManager, resolveWorkerId };

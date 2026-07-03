@@ -1,10 +1,5 @@
 const db = require("../../db");
-const {
-  getDepartment,
-  getPricePerUnit,
-  getProduct,
-  getWorker,
-} = require("./helpers");
+const { getDepartment, getPricePerUnit, getProduct, getWorker } = require("./helpers");
 const { getFormattedOutput } = require("./format-output");
 
 const createWorkerOutput = async (body, actor) => {
@@ -13,11 +8,7 @@ const createWorkerOutput = async (body, actor) => {
   const departmentId = Number(body.department_id);
   const quantity = Number(body.quantity);
 
-  await Promise.all([
-    getWorker(workerId),
-    getProduct(productId),
-    getDepartment(departmentId),
-  ]);
+  await Promise.all([getWorker(workerId), getProduct(productId), getDepartment(departmentId)]);
 
   const pricePerUnit = await getPricePerUnit(productId, departmentId);
   const totalAmount = Number((quantity * pricePerUnit).toFixed(2));

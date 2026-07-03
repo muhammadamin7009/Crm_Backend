@@ -9,24 +9,23 @@ const SORT_COLUMNS = {
   updated_at: "p.updated_at",
 };
 
-const listProducts = async ({
-  q,
-  category_id,
-  color,
-  model,
-  is_active,
-  min_price,
-  max_price,
-  limit = 20,
-  offset = 0,
-  sort_by = "created_at",
-  sort_order = "desc",
-}, actor) => {
-  if (
-    min_price !== undefined &&
-    max_price !== undefined &&
-    Number(min_price) > Number(max_price)
-  ) {
+const listProducts = async (
+  {
+    q,
+    category_id,
+    color,
+    model,
+    is_active,
+    min_price,
+    max_price,
+    limit = 20,
+    offset = 0,
+    sort_by = "created_at",
+    sort_order = "desc",
+  },
+  actor,
+) => {
+  if (min_price !== undefined && max_price !== undefined && Number(min_price) > Number(max_price)) {
     throw new BadRequestError("min_price max_price dan katta bo'lmasligi kerak");
   }
 
@@ -51,11 +50,7 @@ const listProducts = async ({
   if (min_price !== undefined) query.andWhere("p.sale_price", ">=", min_price);
   if (max_price !== undefined) query.andWhere("p.sale_price", "<=", max_price);
 
-  const countQuery = query
-    .clone()
-    .clearSelect()
-    .countDistinct({ count: "p.id" })
-    .first();
+  const countQuery = query.clone().clearSelect().countDistinct({ count: "p.id" }).first();
 
   const [products, { count }] = await Promise.all([
     query

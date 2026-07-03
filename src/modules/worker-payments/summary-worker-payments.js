@@ -61,7 +61,10 @@ const summaryWorkerPayments = async (filters, actor) => {
     summary: rows.map((row) => ({
       ...row,
       payments_count: Number(row.payments_count || 0),
-      total_paid: Number(row.cash_paid || 0) + Number(row.advance_deducted || 0) + Number(row.other_deducted || 0),
+      total_paid:
+        Number(row.cash_paid || 0) +
+        Number(row.advance_deducted || 0) +
+        Number(row.other_deducted || 0),
       cash_paid: Number(row.cash_paid || 0),
       advance_deducted: Number(row.advance_deducted || 0),
       other_deducted: Number(row.other_deducted || 0),

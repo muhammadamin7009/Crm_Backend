@@ -37,9 +37,7 @@ const getWorker = async (workerId) => {
 };
 
 const getExistingPayment = async (id) => {
-  const payment = await db("worker_payments")
-    .where({ id, is_deleted: false })
-    .first();
+  const payment = await db("worker_payments").where({ id, is_deleted: false }).first();
 
   if (!payment) throw new NotFoundError("To'lov topilmadi");
   return payment;

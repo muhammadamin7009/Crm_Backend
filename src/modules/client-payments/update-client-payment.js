@@ -10,7 +10,8 @@ const { BadRequestError } = require("../../shared/errors");
 
 const updateClientPayment = async (body, { id }) => {
   const existing = await getExistingPayment(id);
-  const clientId = body.client_id !== undefined ? Number(body.client_id) : Number(existing.client_id);
+  const clientId =
+    body.client_id !== undefined ? Number(body.client_id) : Number(existing.client_id);
   const saleId =
     body.client_sale_id !== undefined
       ? body.client_sale_id

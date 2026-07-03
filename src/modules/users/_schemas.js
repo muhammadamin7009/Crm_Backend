@@ -33,9 +33,7 @@ exports.postUserByAdminSchema = {
     password: Joi.string().required().min(6).max(100),
     phone: Joi.string().max(30).allow(null, ""),
     user_image: Joi.string().uri().optional().allow(null, ""),
-    role: Joi.string()
-      .valid("admin", "client", "customer", "worker")
-      .required(),
+    role: Joi.string().valid("admin", "client", "customer", "worker").required(),
   }),
 };
 
@@ -47,12 +45,9 @@ exports.postUserByStaffSchema = {
     password: Joi.string().required().min(6).max(100),
     phone: Joi.string().max(30).allow(null, ""),
     user_image: Joi.string().uri().optional().allow(null, ""),
-    role: Joi.string()
-      .valid("client", "customer", "worker")
-      .default("customer"),
+    role: Joi.string().valid("client", "customer", "worker").default("customer"),
   }),
 };
-
 
 exports.patchUserSchema = {
   body: Joi.object({
@@ -85,13 +80,13 @@ exports.showUserSchema = {
 exports.getUsersSchema = {
   query: Joi.object({
     q: Joi.string().allow(""),
-    role: Joi.string().valid(...ROLE_ENUM).allow(""),
+    role: Joi.string()
+      .valid(...ROLE_ENUM)
+      .allow(""),
     is_deleted: Joi.boolean().default(false),
     limit: Joi.number().integer().min(1).max(100).default(20),
     offset: Joi.number().integer().min(0).default(0),
-    sort_by: Joi.string()
-      .valid("updated_at", "created_at")
-      .default("created_at"),
+    sort_by: Joi.string().valid("updated_at", "created_at").default("created_at"),
     sort_order: Joi.string().valid("asc", "desc").default("desc"),
   }),
 };

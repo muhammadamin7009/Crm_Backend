@@ -49,9 +49,7 @@ const summaryClientSales = async (filters) => {
       paid_amount: db.raw("cs.paid_amount + COALESCE(cpa.extra_paid_amount, 0)"),
     })
     .sum({
-      debt_amount: db.raw(
-        "cs.total_amount - cs.paid_amount - COALESCE(cpa.extra_paid_amount, 0)",
-      ),
+      debt_amount: db.raw("cs.total_amount - cs.paid_amount - COALESCE(cpa.extra_paid_amount, 0)"),
     })
     .groupBy(group.group)
     .orderBy(group.order, group_by === "day" ? "desc" : "asc");

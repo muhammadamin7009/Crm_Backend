@@ -1,9 +1,6 @@
 const db = require("../../db");
 const { getExistingPayment, getWorker } = require("./helpers");
-const {
-  assertPaymentDoesNotExceedBalance,
-  assertPeriod,
-} = require("./create-worker-payment");
+const { assertPaymentDoesNotExceedBalance, assertPeriod } = require("./create-worker-payment");
 const { getFormattedPayment } = require("./format-payment");
 const { getAdvanceBalance } = require("../worker-advances/helpers");
 const { BadRequestError } = require("../../shared/errors");
@@ -13,14 +10,13 @@ const updateWorkerPayment = async (body, { id }) => {
 
   const workerId =
     body.worker_id !== undefined ? Number(body.worker_id) : Number(existing.worker_id);
-  const periodFrom =
-    body.period_from !== undefined ? body.period_from : existing.period_from;
-  const periodTo =
-    body.period_to !== undefined ? body.period_to : existing.period_to;
+  const periodFrom = body.period_from !== undefined ? body.period_from : existing.period_from;
+  const periodTo = body.period_to !== undefined ? body.period_to : existing.period_to;
   const amount = body.amount !== undefined ? Number(body.amount) : Number(existing.amount);
-  const advanceDeduction = body.advance_deduction !== undefined
-    ? Number(body.advance_deduction)
-    : Number(existing.advance_deduction || 0);
+  const advanceDeduction =
+    body.advance_deduction !== undefined
+      ? Number(body.advance_deduction)
+      : Number(existing.advance_deduction || 0);
 
   assertPeriod({
     period_from: periodFrom,
@@ -32,7 +28,8 @@ const updateWorkerPayment = async (body, { id }) => {
     throw new BadRequestError("Avansni alohida 'Avans berish' orqali kiriting");
   }
   const advanceBalance = await getAdvanceBalance(workerId);
-  const availableAdvance = advanceBalance.remaining_advance + Number(existing.advance_deduction || 0);
+  const availableAdvance =
+    advanceBalance.remaining_advance + Number(existing.advance_deduction || 0);
   if (advanceDeduction > availableAdvance) {
     throw new BadRequestError("Avansdan ushlanma qolgan avansdan oshmasin");
   }

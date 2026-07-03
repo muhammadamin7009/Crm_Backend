@@ -55,10 +55,7 @@ const getProduct = async (req, res, next) => {
 
 const patchProduct = async (req, res, next) => {
   try {
-    httpValidator(
-      { body: req.body, params: req.params },
-      updateProductSchema,
-    );
+    httpValidator({ body: req.body, params: req.params }, updateProductSchema);
     const result = await updateProductService(req.body, {
       id: Number(req.params.id),
     });
@@ -92,10 +89,7 @@ const getProductDepartmentPrices = async (req, res, next) => {
 
 const putProductDepartmentPrices = async (req, res, next) => {
   try {
-    httpValidator(
-      { body: req.body, params: req.params },
-      upsertProductDepartmentPricesSchema,
-    );
+    httpValidator({ body: req.body, params: req.params }, upsertProductDepartmentPricesSchema);
     const result = await upsertProductDepartmentPricesService(
       { id: Number(req.params.id) },
       req.body.prices,
@@ -109,10 +103,7 @@ const putProductDepartmentPrices = async (req, res, next) => {
 
 const patchProductDepartmentPrice = async (req, res, next) => {
   try {
-    httpValidator(
-      { body: req.body, params: req.params },
-      updateProductDepartmentPriceSchema,
-    );
+    httpValidator({ body: req.body, params: req.params }, updateProductDepartmentPriceSchema);
     const result = await updateProductDepartmentPriceService(
       {
         id: Number(req.params.id),
@@ -178,4 +169,3 @@ module.exports = {
   setPrimaryProductImage,
   removeProductImage,
 };
-

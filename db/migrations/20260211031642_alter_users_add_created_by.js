@@ -4,11 +4,7 @@
  */
 exports.up = function (knex) {
   return knex.schema.table("users", (t) => {
-    t.integer("created_by")
-      .unsigned()
-      .nullable()
-      .references("id")
-      .inTable("users");
+    t.integer("created_by").unsigned().nullable().references("id").inTable("users");
     // xohlasa: t.index(["created_by"]);
   });
 };

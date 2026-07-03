@@ -1,8 +1,18 @@
 exports.up = async function (knex) {
   await knex.schema.createTable("audit_logs", (table) => {
     table.bigIncrements("id");
-    table.integer("company_id").notNullable().references("id").inTable("companies").onDelete("CASCADE");
-    table.integer("actor_user_id").nullable().references("id").inTable("users").onDelete("SET NULL");
+    table
+      .integer("company_id")
+      .notNullable()
+      .references("id")
+      .inTable("companies")
+      .onDelete("CASCADE");
+    table
+      .integer("actor_user_id")
+      .nullable()
+      .references("id")
+      .inTable("users")
+      .onDelete("SET NULL");
     table.string("action", 12).notNullable();
     table.string("entity_type", 80).notNullable();
     table.string("entity_id", 80).nullable();

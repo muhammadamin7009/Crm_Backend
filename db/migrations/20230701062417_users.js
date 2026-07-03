@@ -10,14 +10,7 @@ exports.up = function (knex) {
     table.string("username", 30).notNullable().unique();
     table.string("password", 350).notNullable();
     table
-      .enu("role", [
-        "super_admin",
-        "admin",
-        "client",
-        "supplier",
-        "customer",
-        "worker",
-      ])
+      .enu("role", ["super_admin", "admin", "client", "supplier", "customer", "worker"])
       .notNullable()
       .defaultTo("customer");
     table.string("phone", 30).unique().nullable();

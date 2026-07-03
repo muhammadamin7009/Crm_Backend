@@ -10,14 +10,20 @@ const output = path.join(backupDir, `${config.db.name}-${stamp}.sql`);
 fs.mkdirSync(backupDir, { recursive: true });
 
 const args = [
-  "--host", config.db.host,
-  "--port", String(config.db.port),
-  "--username", config.db.user,
-  "--dbname", config.db.name,
-  "--format", "plain",
+  "--host",
+  config.db.host,
+  "--port",
+  String(config.db.port),
+  "--username",
+  config.db.user,
+  "--dbname",
+  config.db.name,
+  "--format",
+  "plain",
   "--no-owner",
   "--no-privileges",
-  "--file", output,
+  "--file",
+  output,
 ];
 
 const child = spawn("pg_dump", args, {

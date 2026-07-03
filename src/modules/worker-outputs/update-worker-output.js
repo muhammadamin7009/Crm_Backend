@@ -16,20 +16,12 @@ const updateWorkerOutput = async (body, { id }) => {
   const productId =
     body.product_id !== undefined ? Number(body.product_id) : Number(existing.product_id);
   const departmentId =
-    body.department_id !== undefined
-      ? Number(body.department_id)
-      : Number(existing.department_id);
-  const quantity =
-    body.quantity !== undefined ? Number(body.quantity) : Number(existing.quantity);
+    body.department_id !== undefined ? Number(body.department_id) : Number(existing.department_id);
+  const quantity = body.quantity !== undefined ? Number(body.quantity) : Number(existing.quantity);
 
-  await Promise.all([
-    getWorker(workerId),
-    getProduct(productId),
-    getDepartment(departmentId),
-  ]);
+  await Promise.all([getWorker(workerId), getProduct(productId), getDepartment(departmentId)]);
 
-  const shouldRefreshPrice =
-    body.product_id !== undefined || body.department_id !== undefined;
+  const shouldRefreshPrice = body.product_id !== undefined || body.department_id !== undefined;
   const pricePerUnit = shouldRefreshPrice
     ? await getPricePerUnit(productId, departmentId)
     : Number(existing.price_per_unit);

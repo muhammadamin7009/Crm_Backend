@@ -2,8 +2,23 @@ const { ForbiddenError } = require("../errors");
 
 const RULES = [
   { prefixes: ["/client-sales", "/client-payments"], feature: "client_accounting" },
-  { prefixes: ["/suppliers", "/raw-materials", "/material-purchases", "/supplier-payments"], feature: "supplier_accounting" },
-  { prefixes: ["/payroll-periods", "/payroll-lines", "/expense-categories", "/expenses", "/financial-accounts", "/cash-transactions", "/client-returns", "/reports"], feature: "finance" },
+  {
+    prefixes: ["/suppliers", "/raw-materials", "/material-purchases", "/supplier-payments"],
+    feature: "supplier_accounting",
+  },
+  {
+    prefixes: [
+      "/payroll-periods",
+      "/payroll-lines",
+      "/expense-categories",
+      "/expenses",
+      "/financial-accounts",
+      "/cash-transactions",
+      "/client-returns",
+      "/reports",
+    ],
+    feature: "finance",
+  },
   { prefixes: ["/audit-logs"], feature: "audit_logs" },
 ];
 

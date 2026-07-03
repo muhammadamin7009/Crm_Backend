@@ -52,11 +52,7 @@ const listWorkerOutputs = async (filters, actor) => {
   const query = applyActorScope(formatOutputQuery(), actor);
   applyFilters(query, filters);
 
-  const countQuery = query
-    .clone()
-    .clearSelect()
-    .countDistinct({ count: "wo.id" })
-    .first();
+  const countQuery = query.clone().clearSelect().countDistinct({ count: "wo.id" }).first();
 
   const totalQuery = query
     .clone()

@@ -43,9 +43,7 @@ const listQuery = {
   date_to: Joi.date().iso(),
   limit: Joi.number().integer().min(1).max(100).default(20),
   offset: Joi.number().integer().min(0).default(0),
-  sort_by: Joi.string()
-    .valid("paid_at", "created_at", "updated_at", "amount")
-    .default("paid_at"),
+  sort_by: Joi.string().valid("paid_at", "created_at", "updated_at", "amount").default("paid_at"),
   sort_order: Joi.string().valid("asc", "desc").default("desc"),
 };
 
@@ -56,9 +54,7 @@ exports.listWorkerPaymentsSchema = {
 exports.workerPaymentsSummarySchema = {
   query: Joi.object({
     ...listQuery,
-    group_by: Joi.string()
-      .valid("worker", "payment_type", "day")
-      .default("worker"),
+    group_by: Joi.string().valid("worker", "payment_type", "day").default("worker"),
   }),
 };
 

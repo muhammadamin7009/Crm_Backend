@@ -39,7 +39,8 @@ const getWorkerBalance = async ({ worker_id, date_from, date_to }, actor) => {
 
   const [earned, paid, advanceBalance] = await Promise.all([
     earnedQuery.clone().sum({ total_earned: "wo.total_amount" }).first(),
-    paidQuery.clone()
+    paidQuery
+      .clone()
       .sum({ cash_paid: "wp.amount" })
       .sum({ advance_deducted: "wp.advance_deduction" })
       .sum({ other_deducted: "wp.other_deduction" })

@@ -2,18 +2,27 @@ const httpValidator = require("../../shared/http-validator");
 const schemas = require("./_schemas");
 const s = require("./_services");
 
-const handler = (schema, service, status = 200, source = "body") => async (req, res, next) => {
-  try {
-    const input = {};
-    if (schema.body) input.body = req.body;
-    if (schema.params) input.params = req.params;
-    if (schema.query) input.query = req.query;
-    httpValidator(input, schema);
-    const data = source === "query" ? req.query : source === "params" ? Number(req.params.id) : req.body;
-    const result = await service(data, source === "body" && req.params.id ? Number(req.params.id) : req.user, req.user);
-    res.status(status).json(result);
-  } catch (error) { next(error); }
-};
+const handler =
+  (schema, service, status = 200, source = "body") =>
+  async (req, res, next) => {
+    try {
+      const input = {};
+      if (schema.body) input.body = req.body;
+      if (schema.params) input.params = req.params;
+      if (schema.query) input.query = req.query;
+      httpValidator(input, schema);
+      const data =
+        source === "query" ? req.query : source === "params" ? Number(req.params.id) : req.body;
+      const result = await service(
+        data,
+        source === "body" && req.params.id ? Number(req.params.id) : req.user,
+        req.user,
+      );
+      res.status(status).json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
 
 module.exports = {
   listSuppliers: handler(schemas.listSchema, s.listSuppliers, 200, "query"),

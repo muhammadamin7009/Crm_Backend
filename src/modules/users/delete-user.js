@@ -1,8 +1,7 @@
 const db = require("../../db");
 const { NotFoundError, BadRequestError } = require("../../shared/errors");
 
-const formatMoney = (value) =>
-  new Intl.NumberFormat("uz-UZ").format(Number(value || 0));
+const formatMoney = (value) => new Intl.NumberFormat("uz-UZ").format(Number(value || 0));
 
 const getWorkerBalance = async (workerId) => {
   const [earned, paid] = await Promise.all([

@@ -28,11 +28,7 @@ const listDepartments = async ({
     query.andWhere("is_active", String(is_active) === "true");
   }
 
-  const countQuery = query
-    .clone()
-    .clearSelect()
-    .count({ count: "id" })
-    .first();
+  const countQuery = query.clone().clearSelect().count({ count: "id" }).first();
 
   const [departments, { count }] = await Promise.all([
     query

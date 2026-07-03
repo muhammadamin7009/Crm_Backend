@@ -43,9 +43,13 @@ const listWorkerDues = async () => {
       "u.last_name",
       "u.user_image",
       db.raw("COALESCE(earned.total_earned, 0) as total_earned"),
-      db.raw("COALESCE(paid.cash_paid, 0) + COALESCE(paid.advance_deducted, 0) + COALESCE(paid.other_deducted, 0) as total_paid"),
+      db.raw(
+        "COALESCE(paid.cash_paid, 0) + COALESCE(paid.advance_deducted, 0) + COALESCE(paid.other_deducted, 0) as total_paid",
+      ),
       db.raw(`${remainingSql} as remaining`),
-      db.raw("GREATEST(COALESCE(advances.total_advance, 0) - COALESCE(paid.advance_deducted, 0), 0) as remaining_advance"),
+      db.raw(
+        "GREATEST(COALESCE(advances.total_advance, 0) - COALESCE(paid.advance_deducted, 0), 0) as remaining_advance",
+      ),
     )
     .orderByRaw(`${remainingSql} DESC`);
 

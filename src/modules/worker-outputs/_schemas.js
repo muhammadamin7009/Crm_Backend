@@ -73,8 +73,6 @@ exports.listWorkerOutputsSchema = {
 exports.workerOutputsSummarySchema = {
   query: Joi.object({
     ...listQuery,
-    group_by: Joi.string()
-      .valid("worker", "department", "product", "day")
-      .default("worker"),
+    group_by: Joi.string().valid("worker", "department", "product", "day").default("worker"),
   }),
 };

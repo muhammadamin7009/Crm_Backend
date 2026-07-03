@@ -14,9 +14,7 @@ const ensureCategory = async (categoryId) => {
 };
 
 const getExistingProduct = async (id) => {
-  const product = await db("products")
-    .where({ id, is_deleted: false })
-    .first();
+  const product = await db("products").where({ id, is_deleted: false }).first();
 
   if (!product) throw new NotFoundError("Mahsulot topilmadi");
 

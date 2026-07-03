@@ -15,24 +15,12 @@ const listCategories = async ({
     query.andWhere("is_active", String(is_active) === "true");
   }
 
-  const countQuery = query
-    .clone()
-    .clearSelect()
-    .count({ count: "id" })
-    .first();
+  const countQuery = query.clone().clearSelect().count({ count: "id" }).first();
 
   const [categories, { count }] = await Promise.all([
     query
       .clone()
-      .select(
-        "id",
-        "name",
-        "description",
-        "is_active",
-        "created_by",
-        "created_at",
-        "updated_at",
-      )
+      .select("id", "name", "description", "is_active", "created_by", "created_at", "updated_at")
       .orderBy(sort_by, sort_order)
       .limit(Number(limit))
       .offset(Number(offset)),

@@ -15,20 +15,12 @@ const GROUPS = {
     order: "group_name",
   },
   department: {
-    select: [
-      "wo.department_id as group_id",
-      "d.name as group_name",
-      "d.code as group_code",
-    ],
+    select: ["wo.department_id as group_id", "d.name as group_name", "d.code as group_code"],
     group: ["wo.department_id", "d.name", "d.code"],
     order: "d.name",
   },
   product: {
-    select: [
-      "wo.product_id as group_id",
-      "p.name as group_name",
-      "p.sku as group_code",
-    ],
+    select: ["wo.product_id as group_id", "p.name as group_name", "p.sku as group_code"],
     group: ["wo.product_id", "p.name", "p.sku"],
     order: "p.name",
   },

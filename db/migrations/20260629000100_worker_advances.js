@@ -1,11 +1,23 @@
 exports.up = async function (knex) {
   await knex.schema.createTable("worker_advances", (table) => {
     table.increments("id");
-    table.integer("worker_id").unsigned().notNullable().references("id").inTable("users").onDelete("RESTRICT");
+    table
+      .integer("worker_id")
+      .unsigned()
+      .notNullable()
+      .references("id")
+      .inTable("users")
+      .onDelete("RESTRICT");
     table.decimal("amount", 14, 2).notNullable();
     table.date("given_at").notNullable().defaultTo(knex.fn.now());
     table.text("note").nullable();
-    table.integer("created_by").unsigned().nullable().references("id").inTable("users").onDelete("SET NULL");
+    table
+      .integer("created_by")
+      .unsigned()
+      .nullable()
+      .references("id")
+      .inTable("users")
+      .onDelete("SET NULL");
     table.integer("source_payment_id").unsigned().nullable().unique();
     table.boolean("is_deleted").notNullable().defaultTo(false);
     table.timestamps(true, true);
@@ -31,9 +43,13 @@ exports.up = async function (knex) {
 };
 
 exports.down = async function (knex) {
-  const migrated = await knex("worker_advances").whereNotNull("source_payment_id").pluck("source_payment_id");
+  const migrated = await knex("worker_advances")
+    .whereNotNull("source_payment_id")
+    .pluck("source_payment_id");
   if (migrated.length) {
-    await knex("worker_payments").whereIn("id", migrated).update({ is_deleted: false, updated_at: knex.fn.now() });
+    await knex("worker_payments")
+      .whereIn("id", migrated)
+      .update({ is_deleted: false, updated_at: knex.fn.now() });
   }
   await knex.schema.alterTable("worker_payments", (table) => table.dropColumn("advance_deduction"));
   await knex.schema.dropTable("worker_advances");

@@ -8,18 +8,27 @@ const marker = `__audit_smoke_${Date.now()}__`;
 const run = async () => {
   const company = await db.root("companies").where({ slug: "zerrshoes" }).first();
   const [manager, client] = await Promise.all([
-    db.root("users").where({ company_id: company.id, role: "super_admin", is_deleted: false }).first(),
+    db
+      .root("users")
+      .where({ company_id: company.id, role: "super_admin", is_deleted: false })
+      .first(),
     db.root("users").where({ company_id: company.id, role: "client", is_deleted: false }).first(),
   ]);
-  const tokenFor = (user) => jwt.sign(
-    { id: user.id, role: user.role, company_id: company.id, company_slug: company.slug },
-    config.jwt.secret,
-    { expiresIn: "5m" },
-  );
-  const request = (path, user, options = {}) => fetch(`${baseUrl}/api/${company.slug}${path}`, {
-    ...options,
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${tokenFor(user)}`, ...options.headers },
-  });
+  const tokenFor = (user) =>
+    jwt.sign(
+      { id: user.id, role: user.role, company_id: company.id, company_slug: company.slug },
+      config.jwt.secret,
+      { expiresIn: "5m" },
+    );
+  const request = (path, user, options = {}) =>
+    fetch(`${baseUrl}/api/${company.slug}${path}`, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${tokenFor(user)}`,
+        ...options.headers,
+      },
+    });
 
   let categoryId;
   let auditId;
@@ -35,7 +44,8 @@ const run = async () => {
     const createdBody = await created.json();
     categoryId = createdBody.expense_category?.id;
     await new Promise((resolve) => setTimeout(resolve, 300));
-    const audit = await db.root("audit_logs")
+    const audit = await db
+      .root("audit_logs")
       .where({ company_id: company.id, actor_user_id: manager.id, action: "POST" })
       .where("path", "like", "%/expense-categories")
       .orderBy("id", "desc")
@@ -57,7 +67,9 @@ const run = async () => {
   }
 };
 
-run().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-}).finally(() => db.destroy());
+run()
+  .catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  })
+  .finally(() => db.destroy());

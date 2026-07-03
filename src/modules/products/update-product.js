@@ -1,10 +1,5 @@
 const db = require("../../db");
-const {
-  ensureCategory,
-  getExistingProduct,
-  ensureUniqueSku,
-  emptyToNull,
-} = require("./helpers");
+const { ensureCategory, getExistingProduct, ensureUniqueSku, emptyToNull } = require("./helpers");
 
 const updateProduct = async (body, { id }) => {
   const existing = await getExistingProduct(id);

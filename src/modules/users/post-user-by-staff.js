@@ -18,9 +18,7 @@ const createByStaff = async (payload, actor) => {
     throw new BadRequestError("Bu role berib bo'lmaydi");
   }
 
-  const existing = await db("users")
-    .where({ username, is_deleted: false })
-    .first();
+  const existing = await db("users").where({ username, is_deleted: false }).first();
 
   if (existing) throw new BadRequestError("Username already exists");
 
@@ -38,15 +36,7 @@ const createByStaff = async (payload, actor) => {
       is_deleted: false,
       created_by: actor.id, // ✅ kim yaratgani
     })
-    .returning([
-      "id",
-      "first_name",
-      "last_name",
-      "username",
-      "role",
-      "phone",
-      "created_at",
-    ]);
+    .returning(["id", "first_name", "last_name", "username", "role", "phone", "created_at"]);
 
   return { new_user: user };
 };

@@ -14,6 +14,8 @@ const {
   postUserByAdmin,
   postUserByStaff,
   patchUserImage,
+  restoreUser,
+  permanentlyDeleteUser,
 } = require("./_controllers");
 
 const router = require("express").Router();
@@ -71,5 +73,15 @@ router.patch(
   patchUser,
 );
 router.delete("/users/:id", [isLoggedIn, hasRole("super_admin")], deleteUser);
+router.patch(
+  "/users/:id/restore",
+  [isLoggedIn, hasRole("super_admin")],
+  restoreUser,
+);
+router.delete(
+  "/users/:id/permanent",
+  [isLoggedIn, hasRole("super_admin")],
+  permanentlyDeleteUser,
+);
 
 module.exports = router;

@@ -10,21 +10,24 @@ const ROLE = {
   SUPER: "super_admin",
   ADMIN: "admin",
   CLIENT: "client",
-  SUPPLIER: "supplier",
   CUSTOMER: "customer",
 };
 
 const editUser = async (body, { id }, actor) => {
   // target user
   const target = await db("users")
-    .where({ id, is_deleted: false })
-    .select("id", "role", "username")
+    .where({ id })
+    .select("id", "role", "username", "is_deleted")
     .first();
 
   if (!target) throw new NotFoundError("User topilmadi");
 
   const actorId = actor?.id;
   const actorRole = actor?.role;
+
+  if (target.is_deleted && actorRole !== ROLE.SUPER) {
+    throw new ForbiddenError("O'chirilgan hodimni faqat super admin tahrirlay oladi");
+  }
 
   // Patch /users/me bo'lsa actorId === id bo'ladi (controller shunday yuboryapti)
   const isSelf = Number(actorId) === Number(id);

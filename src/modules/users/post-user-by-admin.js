@@ -32,7 +32,7 @@ const createByAdmin = async ({
       password: hashPassword,
       user_image: user_image || null,
       phone,
-      role, // admin/supplier/client/customer
+      role,
       is_deleted: false,
     })
     .returning([

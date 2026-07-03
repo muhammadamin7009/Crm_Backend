@@ -21,6 +21,10 @@ const createByAdmin = require("./post-user-by-admin");
 const createByStaff = require("./post-user-by-staff");
 const getMeService = require("./get-me");
 const updateUserImage = require("./update-user-image");
+const {
+  restoreUser: restoreDeletedUser,
+  permanentlyDeleteUser: permanentlyRemoveDeletedUser,
+} = require("./deleted-user-actions");
 
 /**
  * @param {express.Request} req
@@ -212,6 +216,26 @@ const deleteUser = async (req, res, next) => {
   }
 };
 
+const restoreUser = async (req, res, next) => {
+  try {
+    httpValidator({ params: req.params }, deleteUserSchema);
+    const result = await restoreDeletedUser({ id: Number(req.params.id) });
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const permanentlyDeleteUser = async (req, res, next) => {
+  try {
+    httpValidator({ params: req.params }, deleteUserSchema);
+    const result = await permanentlyRemoveDeletedUser({ id: Number(req.params.id) });
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   loginUser,
   postUser,
@@ -222,6 +246,8 @@ module.exports = {
   getUser,
   getUsers,
   deleteUser,
+  restoreUser,
+  permanentlyDeleteUser,
   postUserByAdmin,
   postUserByStaff,
 };

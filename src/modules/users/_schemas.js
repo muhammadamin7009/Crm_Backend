@@ -1,6 +1,6 @@
 const Joi = require("joi");
 
-const ROLE_ENUM = ["super_admin", "admin", "client", "supplier", "customer", "worker"];
+const ROLE_ENUM = ["super_admin", "admin", "client", "customer", "worker"];
 
 // umumiy: id majburiy bo'lsin
 const idParams = Joi.object({
@@ -34,7 +34,7 @@ exports.postUserByAdminSchema = {
     phone: Joi.string().max(30).allow(null, ""),
     user_image: Joi.string().uri().optional().allow(null, ""),
     role: Joi.string()
-      .valid("admin", "supplier", "client", "customer", "worker")
+      .valid("admin", "client", "customer", "worker")
       .required(),
   }),
 };
@@ -48,7 +48,7 @@ exports.postUserByStaffSchema = {
     phone: Joi.string().max(30).allow(null, ""),
     user_image: Joi.string().uri().optional().allow(null, ""),
     role: Joi.string()
-      .valid("client", "supplier", "customer", "worker")
+      .valid("client", "customer", "worker")
       .default("customer"),
   }),
 };
@@ -86,6 +86,7 @@ exports.getUsersSchema = {
   query: Joi.object({
     q: Joi.string().allow(""),
     role: Joi.string().valid(...ROLE_ENUM).allow(""),
+    is_deleted: Joi.boolean().default(false),
     limit: Joi.number().integer().min(1).max(100).default(20),
     offset: Joi.number().integer().min(0).default(0),
     sort_by: Joi.string()

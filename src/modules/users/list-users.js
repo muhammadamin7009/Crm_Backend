@@ -3,6 +3,7 @@ const db = require("../../db");
 const listUsers = async ({
   q,
   role,
+  is_deleted = false,
   limit = 20,
   offset = 0,
   sort_by = "created_at",
@@ -45,8 +46,11 @@ const listUsers = async ({
     return { users, pageInfo: { total: Number(count), offset: Number(offset), limit: Number(limit) } };
   }
 
+  const showDeleted =
+    actor?.role === "super_admin" &&
+    (is_deleted === true || is_deleted === "true");
   const query = db("users")
-    .where({ is_deleted: false })
+    .where({ is_deleted: showDeleted })
     .select(
       "id",
       "first_name",
@@ -58,6 +62,7 @@ const listUsers = async ({
       "created_by",
       "created_at",
       "updated_at",
+      "is_deleted",
     );
 
   if (q) {

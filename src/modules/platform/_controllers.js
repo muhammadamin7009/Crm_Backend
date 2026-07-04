@@ -32,6 +32,30 @@ exports.updateCompany = async (req, res, next) => {
     next(e);
   }
 };
+exports.getCompanyManagement = async (req, res, next) => {
+  try {
+    validate({ params: req.params }, schemas.companyManagementGet);
+    res.json(await s.getCompanyManagement(Number(req.params.id)));
+  } catch (e) {
+    next(e);
+  }
+};
+exports.updateCompanyManagement = async (req, res, next) => {
+  try {
+    validate({ body: req.body, params: req.params }, schemas.companyManagementUpdate);
+    res.json(await s.updateCompanyManagement(req.body, Number(req.params.id)));
+  } catch (e) {
+    next(e);
+  }
+};
+exports.deleteCompany = async (req, res, next) => {
+  try {
+    validate({ body: req.body, params: req.params }, schemas.companyDelete);
+    res.json(await s.deleteCompany(Number(req.params.id), req.body.confirm_slug));
+  } catch (e) {
+    next(e);
+  }
+};
 exports.createPayment = async (req, res, next) => {
   try {
     validate({ body: req.body }, schemas.paymentCreate);

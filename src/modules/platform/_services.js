@@ -112,6 +112,117 @@ const updateCompany = async (body, id) =>
     return { message: "Korxona yangilandi" };
   });
 
+const getCompanyManagement = async (id) => {
+  const company = await db.root("companies").where({ id }).first();
+  if (!company) throw new NotFoundError("Korxona topilmadi");
+
+  const superAdmin = await db
+    .root("users")
+    .where({ company_id: id, role: "super_admin", is_deleted: false })
+    .select("id", "first_name", "last_name", "username", "phone", "user_image", "updated_at")
+    .first();
+  if (!superAdmin) throw new NotFoundError("Korxona super administratori topilmadi");
+
+  return { company, super_admin: superAdmin };
+};
+
+const updateCompanyManagement = async (body, id) =>
+  db.root.transaction(async (trx) => {
+    const company = await trx("companies").where({ id }).first();
+    if (!company) throw new NotFoundError("Korxona topilmadi");
+
+    const superAdmin = await trx("users")
+      .where({ company_id: id, role: "super_admin", is_deleted: false })
+      .first();
+    if (!superAdmin) throw new NotFoundError("Korxona super administratori topilmadi");
+
+    if (body.company) {
+      const companyPatch = {};
+      if (body.company.name !== undefined) companyPatch.name = body.company.name;
+      if (body.company.phone !== undefined) companyPatch.phone = body.company.phone || null;
+      if (Object.keys(companyPatch).length) {
+        await trx("companies")
+          .where({ id })
+          .update({ ...companyPatch, updated_at: trx.fn.now() });
+      }
+    }
+
+    if (body.super_admin) {
+      const adminPatch = {};
+      for (const key of ["first_name", "last_name", "username"]) {
+        if (body.super_admin[key] !== undefined) adminPatch[key] = body.super_admin[key];
+      }
+      if (body.super_admin.phone !== undefined) adminPatch.phone = body.super_admin.phone || null;
+
+      if (adminPatch.username && adminPatch.username !== superAdmin.username) {
+        const duplicate = await trx("users")
+          .where({ company_id: id, username: adminPatch.username })
+          .whereNot({ id: superAdmin.id })
+          .first("id");
+        if (duplicate) throw new BadRequestError("Bu foydalanuvchi nomi korxonada band");
+      }
+
+      if (body.super_admin.password) {
+        adminPatch.password = await bcrypt.hash(body.super_admin.password, 10);
+      }
+      if (Object.keys(adminPatch).length) {
+        await trx("users")
+          .where({ id: superAdmin.id, company_id: id })
+          .update({ ...adminPatch, updated_at: trx.fn.now() });
+      }
+    }
+
+    return { message: "Korxona va super administrator ma'lumotlari yangilandi" };
+  });
+
+const deleteCompany = async (id, confirmSlug) =>
+  db.root.transaction(async (trx) => {
+    const company = await trx("companies").where({ id }).first();
+    if (!company) throw new NotFoundError("Korxona topilmadi");
+    if (company.slug !== confirmSlug) {
+      throw new BadRequestError("Tasdiqlash uchun korxona kodini aynan kiriting");
+    }
+
+    const tables = [
+      "audit_logs",
+      "cash_transactions",
+      "expenses",
+      "client_returns",
+      "client_payments",
+      "client_sales",
+      "supplier_payments",
+      "material_purchase_items",
+      "material_purchases",
+      "worker_payments",
+      "payroll_lines",
+      "payroll_periods",
+      "worker_advances",
+      "worker_outputs",
+      "employee_agreements",
+      "employee_profiles",
+      "positions",
+      "product_department_prices",
+      "product_images",
+      "products",
+      "categories",
+      "departments",
+      "raw_materials",
+      "suppliers",
+      "expense_categories",
+      "financial_accounts",
+      "users",
+    ];
+
+    for (const table of tables) {
+      await trx(table).where({ company_id: id }).delete();
+    }
+    await trx("subscription_payments").where({ company_id: id }).delete();
+    await trx("company_subscriptions").where({ company_id: id }).delete();
+    await trx("companies").where({ id }).delete();
+
+    return { message: `${company.name} korxonasi butunlay o'chirildi` };
+  });
+
 const createPayment = async (body) => {
   const company = await db.root("companies").where({ id: body.company_id }).first();
   if (!company) throw new NotFoundError("Korxona topilmadi");
@@ -150,6 +261,9 @@ module.exports = {
   listCompanies,
   createCompany,
   updateCompany,
+  getCompanyManagement,
+  updateCompanyManagement,
+  deleteCompany,
   createPayment,
   listPayments,
   listPlans,

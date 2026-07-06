@@ -4,6 +4,7 @@ const {
   showUserSchema,
   getUsersSchema,
   loginUserSchema,
+  verifyLoginSchema,
   postUserSchema,
   postUserByAdminSchema,
   postUserByStaffSchema,
@@ -35,9 +36,45 @@ const loginUser = async (req, res, next) => {
   try {
     httpValidator({ body: req.body }, loginUserSchema);
 
-    const result = await login(req.body, req.company);
+    const result = await login(req.body, req.company, {
+      device_id: req.headers["x-device-id"],
+      user_agent: req.headers["user-agent"],
+      ip_address: req.ip,
+    });
 
     res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const verifyLogin = async (req, res, next) => {
+  try {
+    httpValidator({ body: req.body }, verifyLoginSchema);
+    res.status(200).json(await login.verify(req.body, req.company));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const sessionsService = require("./user-sessions");
+const getSessions = async (req, res, next) => {
+  try {
+    res.json(await sessionsService.listSessions(req.user));
+  } catch (error) {
+    next(error);
+  }
+};
+const removeSession = async (req, res, next) => {
+  try {
+    res.json(await sessionsService.revokeSession(req.params.id, req.user));
+  } catch (error) {
+    next(error);
+  }
+};
+const removeOtherSessions = async (req, res, next) => {
+  try {
+    res.json(await sessionsService.revokeOtherSessions(req.user));
   } catch (error) {
     next(error);
   }
@@ -238,6 +275,10 @@ const permanentlyDeleteUser = async (req, res, next) => {
 
 module.exports = {
   loginUser,
+  verifyLogin,
+  getSessions,
+  removeSession,
+  removeOtherSessions,
   postUser,
   patchUser,
   patchMe,

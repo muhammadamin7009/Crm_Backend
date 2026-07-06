@@ -13,4 +13,7 @@ module.exports = {
   jwt: {
     secret: process.env.JWT_SECRET,
   },
+  sms: {
+    provider: process.env.SMS_PROVIDER || "console",
+  },
 };

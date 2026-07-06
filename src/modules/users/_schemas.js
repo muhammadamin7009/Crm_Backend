@@ -11,6 +11,13 @@ exports.loginUserSchema = {
   body: Joi.object({
     username: Joi.string().required().max(30),
     password: Joi.string().required(),
+    device_id: Joi.string().max(100).optional(),
+  }),
+};
+exports.verifyLoginSchema = {
+  body: Joi.object({
+    challenge_id: Joi.string().guid({ version: "uuidv4" }).required(),
+    code: Joi.string().pattern(/^\d{6}$/).required(),
   }),
 };
 

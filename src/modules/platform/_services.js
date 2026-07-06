@@ -185,6 +185,8 @@ const deleteCompany = async (id, confirmSlug) =>
 
     const tables = [
       "audit_logs",
+      "auth_challenges",
+      "user_sessions",
       "cash_transactions",
       "expenses",
       "client_returns",

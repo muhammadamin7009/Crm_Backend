@@ -7,6 +7,10 @@ const {
   getUser,
   getMe,
   loginUser,
+  verifyLogin,
+  getSessions,
+  removeSession,
+  removeOtherSessions,
   postUser,
   patchUser,
   patchMe,
@@ -37,6 +41,10 @@ const upload = multer({
 });
 
 router.post("/users/login", loginUser);
+router.post("/users/login/verify", verifyLogin);
+router.get("/users/me/sessions", isLoggedIn, getSessions);
+router.delete("/users/me/sessions/others", isLoggedIn, removeOtherSessions);
+router.delete("/users/me/sessions/:id", isLoggedIn, removeSession);
 router.post(
   "/users/admin",
   [isLoggedIn, hasRole("super_admin"), enforceUserLimit],

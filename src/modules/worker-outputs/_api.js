@@ -1,5 +1,5 @@
-const router = require("express").Router();
-const { isLoggedIn, hasRole } = require("../../shared/auth");
+﻿const router = require("express").Router();
+const { isLoggedIn, hasRole, hasPermission } = require("../../shared/auth");
 const {
   createWorkerOutput,
   createBulkWorkerOutputs,
@@ -10,37 +10,15 @@ const {
   removeWorkerOutput,
 } = require("./_controllers");
 
-router.get(
-  "/worker-outputs",
-  isLoggedIn,
-  hasRole("super_admin", "admin", "worker"),
-  getWorkerOutputs,
-);
-router.get(
-  "/worker-outputs/summary",
-  isLoggedIn,
-  hasRole("super_admin", "admin", "worker"),
-  getWorkerOutputsSummary,
-);
-router.get(
-  "/worker-outputs/:id",
-  isLoggedIn,
-  hasRole("super_admin", "admin", "worker"),
-  getWorkerOutput,
-);
-router.post(
-  "/worker-outputs/bulk",
-  isLoggedIn,
-  hasRole("super_admin", "admin"),
-  createBulkWorkerOutputs,
-);
-router.post("/worker-outputs", isLoggedIn, hasRole("super_admin", "admin"), createWorkerOutput);
-router.patch("/worker-outputs/:id", isLoggedIn, hasRole("super_admin", "admin"), patchWorkerOutput);
-router.delete(
-  "/worker-outputs/:id",
-  isLoggedIn,
-  hasRole("super_admin", "admin"),
-  removeWorkerOutput,
-);
+const viewManager = [isLoggedIn, hasRole("super_admin", "admin", "worker"), hasPermission("production.view")];
+const manageManager = [isLoggedIn, hasRole("super_admin", "admin"), hasPermission("production.manage")];
+
+router.get("/worker-outputs", ...viewManager, getWorkerOutputs);
+router.get("/worker-outputs/summary", ...viewManager, getWorkerOutputsSummary);
+router.get("/worker-outputs/:id", ...viewManager, getWorkerOutput);
+router.post("/worker-outputs/bulk", ...manageManager, createBulkWorkerOutputs);
+router.post("/worker-outputs", ...manageManager, createWorkerOutput);
+router.patch("/worker-outputs/:id", ...manageManager, patchWorkerOutput);
+router.delete("/worker-outputs/:id", ...manageManager, removeWorkerOutput);
 
 module.exports = router;

@@ -1,21 +1,25 @@
-const router = require("express").Router();
-const { isLoggedIn, hasRole } = require("../../shared/auth");
+﻿const router = require("express").Router();
+const { isLoggedIn, hasRole, hasPermission } = require("../../shared/auth");
 const c = require("./_controllers");
-const manager = [isLoggedIn, hasRole("super_admin", "admin")];
-router.get("/payroll-periods", ...manager, c.listPayroll);
-router.get("/payroll-periods/:id", ...manager, c.showPayroll);
-router.post("/payroll-periods", ...manager, c.createPayroll);
-router.patch("/payroll-lines/:id", ...manager, c.updatePayrollLine);
-router.post("/payroll-periods/:id/close", ...manager, c.closePayroll);
-router.get("/expense-categories", ...manager, c.listCategories);
-router.post("/expense-categories", ...manager, c.createCategory);
-router.get("/expenses", ...manager, c.listExpenses);
-router.post("/expenses", ...manager, c.createExpense);
-router.get("/financial-accounts", ...manager, c.listAccounts);
-router.post("/financial-accounts", ...manager, c.createAccount);
-router.get("/cash-transactions", ...manager, c.listTransactions);
-router.post("/cash-transactions", ...manager, c.createTransaction);
-router.get("/client-returns", ...manager, c.listReturns);
-router.post("/client-returns", ...manager, c.createReturn);
-router.get("/reports/profit-loss", ...manager, c.profitLoss);
+
+const viewManager = [isLoggedIn, hasRole("super_admin", "admin"), hasPermission("finance.view")];
+const manageManager = [isLoggedIn, hasRole("super_admin", "admin"), hasPermission("finance.manage")];
+
+router.get("/payroll-periods", ...viewManager, c.listPayroll);
+router.get("/payroll-periods/:id", ...viewManager, c.showPayroll);
+router.post("/payroll-periods", ...manageManager, c.createPayroll);
+router.patch("/payroll-lines/:id", ...manageManager, c.updatePayrollLine);
+router.post("/payroll-periods/:id/close", ...manageManager, c.closePayroll);
+router.get("/expense-categories", ...viewManager, c.listCategories);
+router.post("/expense-categories", ...manageManager, c.createCategory);
+router.get("/expenses", ...viewManager, c.listExpenses);
+router.post("/expenses", ...manageManager, c.createExpense);
+router.get("/financial-accounts", ...viewManager, c.listAccounts);
+router.post("/financial-accounts", ...manageManager, c.createAccount);
+router.get("/cash-transactions", ...viewManager, c.listTransactions);
+router.post("/cash-transactions", ...manageManager, c.createTransaction);
+router.get("/client-returns", ...viewManager, c.listReturns);
+router.post("/client-returns", ...manageManager, c.createReturn);
+router.get("/reports/profit-loss", ...viewManager, c.profitLoss);
+
 module.exports = router;

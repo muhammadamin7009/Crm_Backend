@@ -1,4 +1,4 @@
-const express = require("express");
+﻿const express = require("express");
 const config = require("./shared/config");
 const usersRoute = require("./modules/users/_api");
 const categoriesRoute = require("./modules/categories/_api");
@@ -15,6 +15,7 @@ const financeRoute = require("./modules/finance/_api");
 const tenantContext = require("./shared/tenant-context");
 const platformRoute = require("./modules/platform/_api");
 const auditLogsRoute = require("./modules/audit-logs/_api");
+const permissionsRoute = require("./modules/permissions/_api");
 const auditLog = require("./shared/middlewares/audit-log");
 const planAccess = require("./shared/middlewares/plan-access");
 const handleError = require("./shared/errors/handle");
@@ -42,6 +43,7 @@ tenantRouter.use(materialPurchasesRoute);
 tenantRouter.use(employeesRoute);
 tenantRouter.use(financeRoute);
 tenantRouter.use(auditLogsRoute);
+tenantRouter.use(permissionsRoute);
 
 app.use("/api/:companySlug", tenantContext, planAccess, tenantRouter);
 
@@ -51,3 +53,4 @@ const PORT = config.port || 3000;
 app.listen(PORT, () => {
   console.log(`http://localhost:${PORT}`);
 });
+

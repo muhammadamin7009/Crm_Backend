@@ -1,5 +1,5 @@
-const router = require("express").Router();
-const { isLoggedIn, hasRole } = require("../../shared/auth");
+﻿const router = require("express").Router();
+const { isLoggedIn, hasRole, hasPermission } = require("../../shared/auth");
 const {
   createWorkerPayment,
   getWorkerPayments,
@@ -11,43 +11,17 @@ const {
   removeWorkerPayment,
 } = require("./_controllers");
 
-router.get(
-  "/worker-payments",
-  isLoggedIn,
-  hasRole("super_admin", "admin", "worker"),
-  getWorkerPayments,
-);
-router.get(
-  "/worker-payments/summary",
-  isLoggedIn,
-  hasRole("super_admin", "admin", "worker"),
-  getWorkerPaymentsSummary,
-);
-router.get(
-  "/worker-payments/balance",
-  isLoggedIn,
-  hasRole("super_admin", "admin", "worker"),
-  getWorkerBalance,
-);
-router.get("/worker-payments/due", isLoggedIn, hasRole("super_admin", "admin"), getWorkerDues);
-router.get(
-  "/worker-payments/:id",
-  isLoggedIn,
-  hasRole("super_admin", "admin", "worker"),
-  getWorkerPayment,
-);
-router.post("/worker-payments", isLoggedIn, hasRole("super_admin", "admin"), createWorkerPayment);
-router.patch(
-  "/worker-payments/:id",
-  isLoggedIn,
-  hasRole("super_admin", "admin"),
-  patchWorkerPayment,
-);
-router.delete(
-  "/worker-payments/:id",
-  isLoggedIn,
-  hasRole("super_admin", "admin"),
-  removeWorkerPayment,
-);
+const viewManager = [isLoggedIn, hasRole("super_admin", "admin", "worker"), hasPermission("payroll.view")];
+const managerViewOnly = [isLoggedIn, hasRole("super_admin", "admin"), hasPermission("payroll.view")];
+const manageManager = [isLoggedIn, hasRole("super_admin", "admin"), hasPermission("payroll.manage")];
+
+router.get("/worker-payments", ...viewManager, getWorkerPayments);
+router.get("/worker-payments/summary", ...viewManager, getWorkerPaymentsSummary);
+router.get("/worker-payments/balance", ...viewManager, getWorkerBalance);
+router.get("/worker-payments/due", ...managerViewOnly, getWorkerDues);
+router.get("/worker-payments/:id", ...viewManager, getWorkerPayment);
+router.post("/worker-payments", ...manageManager, createWorkerPayment);
+router.patch("/worker-payments/:id", ...manageManager, patchWorkerPayment);
+router.delete("/worker-payments/:id", ...manageManager, removeWorkerPayment);
 
 module.exports = router;

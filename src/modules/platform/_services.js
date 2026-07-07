@@ -1,4 +1,4 @@
-const db = require("../../db");
+﻿const db = require("../../db");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const config = require("../../shared/config");
@@ -187,6 +187,7 @@ const deleteCompany = async (id, confirmSlug) =>
       "audit_logs",
       "auth_challenges",
       "user_sessions",
+      "user_permissions",
       "cash_transactions",
       "expenses",
       "client_returns",
@@ -270,3 +271,4 @@ module.exports = {
   listPayments,
   listPlans,
 };
+

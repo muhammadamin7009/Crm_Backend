@@ -1,25 +1,27 @@
-const router = require("express").Router();
-const { isLoggedIn, hasRole } = require("../../shared/auth");
+﻿const router = require("express").Router();
+const { isLoggedIn, hasRole, hasPermission } = require("../../shared/auth");
 const c = require("./_controllers");
-const manager = [isLoggedIn, hasRole("super_admin", "admin")];
 
-router.get("/suppliers", ...manager, c.listSuppliers);
-router.post("/suppliers", ...manager, c.createSupplier);
-router.patch("/suppliers/:id", ...manager, c.updateSupplier);
-router.delete("/suppliers/:id", ...manager, c.deleteSupplier);
+const viewManager = [isLoggedIn, hasRole("super_admin", "admin"), hasPermission("material_purchases.view")];
+const manageManager = [isLoggedIn, hasRole("super_admin", "admin"), hasPermission("material_purchases.manage")];
 
-router.get("/raw-materials", ...manager, c.listMaterials);
-router.post("/raw-materials", ...manager, c.createMaterial);
-router.patch("/raw-materials/:id", ...manager, c.updateMaterial);
-router.delete("/raw-materials/:id", ...manager, c.deleteMaterial);
+router.get("/suppliers", ...viewManager, c.listSuppliers);
+router.post("/suppliers", ...manageManager, c.createSupplier);
+router.patch("/suppliers/:id", ...manageManager, c.updateSupplier);
+router.delete("/suppliers/:id", ...manageManager, c.deleteSupplier);
 
-router.get("/material-purchases", ...manager, c.listPurchases);
-router.get("/material-purchases/balance", ...manager, c.supplierBalance);
-router.post("/material-purchases", ...manager, c.createPurchase);
-router.patch("/material-purchases/:id", ...manager, c.updatePurchase);
-router.delete("/material-purchases/:id", ...manager, c.deletePurchase);
+router.get("/raw-materials", ...viewManager, c.listMaterials);
+router.post("/raw-materials", ...manageManager, c.createMaterial);
+router.patch("/raw-materials/:id", ...manageManager, c.updateMaterial);
+router.delete("/raw-materials/:id", ...manageManager, c.deleteMaterial);
 
-router.get("/supplier-payments", ...manager, c.listSupplierPayments);
-router.post("/supplier-payments", ...manager, c.createSupplierPayment);
+router.get("/material-purchases", ...viewManager, c.listPurchases);
+router.get("/material-purchases/balance", ...viewManager, c.supplierBalance);
+router.post("/material-purchases", ...manageManager, c.createPurchase);
+router.patch("/material-purchases/:id", ...manageManager, c.updatePurchase);
+router.delete("/material-purchases/:id", ...manageManager, c.deletePurchase);
+
+router.get("/supplier-payments", ...viewManager, c.listSupplierPayments);
+router.post("/supplier-payments", ...manageManager, c.createSupplierPayment);
 
 module.exports = router;

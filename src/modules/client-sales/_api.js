@@ -1,5 +1,5 @@
-const router = require("express").Router();
-const { isLoggedIn, hasRole } = require("../../shared/auth");
+﻿const router = require("express").Router();
+const { isLoggedIn, hasRole, hasPermission } = require("../../shared/auth");
 const {
   createClientSale,
   createBulkClientSale,
@@ -12,25 +12,17 @@ const {
   removeClientSale,
 } = require("./_controllers");
 
-router.get("/client-sales/me", isLoggedIn, hasRole("client"), getMyClientAccount);
+const viewManager = [isLoggedIn, hasRole("super_admin", "admin"), hasPermission("client_sales.view")];
+const manageManager = [isLoggedIn, hasRole("super_admin", "admin"), hasPermission("client_sales.manage")];
 
-router.get("/client-sales", isLoggedIn, hasRole("super_admin", "admin"), getClientSales);
-router.get(
-  "/client-sales/summary",
-  isLoggedIn,
-  hasRole("super_admin", "admin"),
-  getClientSalesSummary,
-);
-router.get("/client-sales/balance", isLoggedIn, hasRole("super_admin", "admin"), getClientBalance);
-router.get("/client-sales/:id", isLoggedIn, hasRole("super_admin", "admin"), getClientSale);
-router.post(
-  "/client-sales/bulk",
-  isLoggedIn,
-  hasRole("super_admin", "admin"),
-  createBulkClientSale,
-);
-router.post("/client-sales", isLoggedIn, hasRole("super_admin", "admin"), createClientSale);
-router.patch("/client-sales/:id", isLoggedIn, hasRole("super_admin", "admin"), patchClientSale);
-router.delete("/client-sales/:id", isLoggedIn, hasRole("super_admin", "admin"), removeClientSale);
+router.get("/client-sales/me", isLoggedIn, hasRole("client"), getMyClientAccount);
+router.get("/client-sales", ...viewManager, getClientSales);
+router.get("/client-sales/summary", ...viewManager, getClientSalesSummary);
+router.get("/client-sales/balance", ...viewManager, getClientBalance);
+router.get("/client-sales/:id", ...viewManager, getClientSale);
+router.post("/client-sales/bulk", ...manageManager, createBulkClientSale);
+router.post("/client-sales", ...manageManager, createClientSale);
+router.patch("/client-sales/:id", ...manageManager, patchClientSale);
+router.delete("/client-sales/:id", ...manageManager, removeClientSale);
 
 module.exports = router;

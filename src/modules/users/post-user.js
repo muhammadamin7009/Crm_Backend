@@ -1,11 +1,12 @@
 const db = require("../../db");
 const bcrypt = require("bcryptjs");
 const { BadRequestError } = require("../../shared/errors");
+const { normalizeUserInput } = require("./normalize-user-input");
 
-const registration = async (
-  { first_name, last_name, username, password, user_image, phone = null },
-  company,
-) => {
+const registration = async (payload, company) => {
+  const { first_name, last_name, username, password, user_image, phone = null } =
+    normalizeUserInput(payload);
+
   // 1️⃣ username unique tekshiramiz
   const existing = await db("users").where({ username }).andWhere({ is_deleted: false }).first();
 

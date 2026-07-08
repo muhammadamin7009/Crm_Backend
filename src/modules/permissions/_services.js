@@ -18,6 +18,22 @@ const groupPermissions = (permissions) => {
   return groups;
 };
 
+const getRequiredViewPermission = (key) => {
+  if (!key?.endsWith(".manage")) return null;
+  return key.replace(".manage", ".view");
+};
+
+const normalizePermissions = (permissions = []) => {
+  const current = new Set(permissions);
+
+  [...current].forEach((key) => {
+    const viewKey = getRequiredViewPermission(key);
+    if (viewKey) current.add(viewKey);
+  });
+
+  return [...current];
+};
+
 const listPermissionSettings = async () => {
   const admins = await db("users")
     .where({ role: "admin", is_deleted: false })
@@ -43,7 +59,7 @@ const listPermissionSettings = async () => {
     groups: groupPermissions(PERMISSIONS),
     admins: admins.map((admin) => ({
       ...admin,
-      permissions: byUser[admin.id] || [],
+      permissions: normalizePermissions(byUser[admin.id] || []),
     })),
   };
 };
@@ -62,7 +78,7 @@ const getUserPermissionSettings = async (id) => {
 
   return {
     user,
-    permissions: rows.map((row) => row.permission_key),
+    permissions: normalizePermissions(rows.map((row) => row.permission_key)),
   };
 };
 
@@ -79,7 +95,9 @@ const updateUserPermissions = async (id, permissions, actor) => {
   if (!target) throw new NotFoundError("Admin topilmadi");
 
   const allowedKeys = new Set(PERMISSIONS.map((item) => item.key));
-  const cleanPermissions = [...new Set(permissions)].filter((key) => allowedKeys.has(key));
+  const cleanPermissions = normalizePermissions([...new Set(permissions)]).filter((key) =>
+    allowedKeys.has(key),
+  );
 
   await db.transaction(async (trx) => {
     await trx("user_permissions").where({ user_id: target.id }).delete();

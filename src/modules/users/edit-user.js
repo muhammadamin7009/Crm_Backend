@@ -1,6 +1,7 @@
 const db = require("../../db");
 const bcrypt = require("bcryptjs");
 const { NotFoundError, BadRequestError, ForbiddenError } = require("../../shared/errors");
+const { normalizeUserInput } = require("./normalize-user-input");
 
 const ROLE = {
   SUPER: "super_admin",
@@ -40,7 +41,7 @@ const editUser = async (body, { id }, actor) => {
   }
 
   // 2) Role update qoidalari
-  const patch = { ...body, updated_at: db.fn.now() };
+  const patch = { ...normalizeUserInput(body), updated_at: db.fn.now() };
 
   // Self editda role umuman ruxsat emas (schema ham yo'q),
   // lekin ehtiyot uchun baribir bloklaymiz:

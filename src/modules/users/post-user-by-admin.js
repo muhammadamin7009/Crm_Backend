@@ -1,16 +1,12 @@
 const db = require("../../db");
 const bcrypt = require("bcryptjs");
 const { BadRequestError } = require("../../shared/errors");
+const { normalizeUserInput } = require("./normalize-user-input");
 
-const createByAdmin = async ({
-  first_name,
-  last_name,
-  username,
-  password,
-  user_image,
-  phone = null,
-  role,
-}) => {
+const createByAdmin = async (payload) => {
+  const { first_name, last_name, username, password, user_image, phone = null, role } =
+    normalizeUserInput(payload);
+
   // super_admin yaratishga ruxsat yo'q (projectda 1ta)
   if (role === "super_admin") {
     throw new BadRequestError("super_admin role berib bo‘lmaydi");

@@ -2,6 +2,39 @@ const Joi = require("joi");
 
 const ROLE_ENUM = ["super_admin", "admin", "client", "customer", "worker"];
 
+const PHONE_MESSAGE =
+  "Telefon raqam xalqaro formatda bo'lishi kerak. Masalan: +998965001001";
+
+const normalizePhone = (value) => String(value || "").trim().replace(/[()\s-]/g, "");
+
+const phoneSchema = Joi.string()
+  .trim()
+  .max(30)
+  .allow(null, "")
+  .custom((value, helpers) => {
+    if (value === null || value === "") return value;
+
+    const phone = normalizePhone(value);
+
+    if (!phone.startsWith("+")) {
+      return helpers.message("Telefon raqam + bilan boshlanishi kerak");
+    }
+
+    if (phone.startsWith("+998") && !/^\+998\d{9}$/.test(phone)) {
+      return helpers.message(
+        "O'zbekiston raqami +998 dan keyin aynan 9 ta raqam bo'lishi kerak",
+      );
+    }
+
+    if (!/^\+[1-9]\d{7,14}$/.test(phone)) {
+      return helpers.message(PHONE_MESSAGE);
+    }
+
+    return phone;
+  });
+
+const nameSchema = Joi.string().trim().max(50);
+
 // umumiy: id majburiy bo'lsin
 const idParams = Joi.object({
   id: Joi.number().integer().positive().required(),
@@ -23,22 +56,22 @@ exports.verifyLoginSchema = {
 
 exports.postUserSchema = {
   body: Joi.object({
-    first_name: Joi.string().required().max(50),
-    last_name: Joi.string().required().max(50),
+    first_name: nameSchema.required(),
+    last_name: nameSchema.required(),
     username: Joi.string().required().max(30),
     password: Joi.string().required().min(6).max(100),
-    phone: Joi.string().max(30).allow(null, ""),
+    phone: phoneSchema,
     user_image: Joi.string().uri().optional().allow(null, ""),
   }),
 };
 
 exports.postUserByAdminSchema = {
   body: Joi.object({
-    first_name: Joi.string().required().max(50),
-    last_name: Joi.string().required().max(50),
+    first_name: nameSchema.required(),
+    last_name: nameSchema.required(),
     username: Joi.string().required().max(30),
     password: Joi.string().required().min(6).max(100),
-    phone: Joi.string().max(30).allow(null, ""),
+    phone: phoneSchema,
     user_image: Joi.string().uri().optional().allow(null, ""),
     role: Joi.string().valid("admin", "client", "customer", "worker").required(),
   }),
@@ -46,11 +79,11 @@ exports.postUserByAdminSchema = {
 
 exports.postUserByStaffSchema = {
   body: Joi.object({
-    first_name: Joi.string().required().max(50),
-    last_name: Joi.string().required().max(50),
+    first_name: nameSchema.required(),
+    last_name: nameSchema.required(),
     username: Joi.string().required().max(30),
     password: Joi.string().required().min(6).max(100),
-    phone: Joi.string().max(30).allow(null, ""),
+    phone: phoneSchema,
     user_image: Joi.string().uri().optional().allow(null, ""),
     role: Joi.string().valid("client", "customer", "worker").default("customer"),
   }),
@@ -58,11 +91,11 @@ exports.postUserByStaffSchema = {
 
 exports.patchUserSchema = {
   body: Joi.object({
-    first_name: Joi.string().max(50),
-    last_name: Joi.string().max(50),
+    first_name: nameSchema,
+    last_name: nameSchema,
     username: Joi.string().max(30),
     password: Joi.string().min(6).max(100),
-    phone: Joi.string().max(30).allow(null, ""),
+    phone: phoneSchema,
     role: Joi.string().valid(...ROLE_ENUM),
   }).min(1), // kamida bitta field bo'lishi shart
   params: idParams,
@@ -70,12 +103,12 @@ exports.patchUserSchema = {
 
 exports.patchMeSchema = {
   body: Joi.object({
-    first_name: Joi.string().max(50),
-    last_name: Joi.string().max(50),
+    first_name: nameSchema,
+    last_name: nameSchema,
     username: Joi.string().max(30),
     user_image: Joi.string().uri().optional().allow(null, ""),
     password: Joi.string().min(6).max(100),
-    phone: Joi.string().max(30).allow(null, ""),
+    phone: phoneSchema,
     // role YO'Q (self editda ruxsat bermaymiz)
   }).min(1),
 };

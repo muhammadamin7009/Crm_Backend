@@ -1,6 +1,7 @@
 const db = require("../../db");
 const bcrypt = require("bcryptjs");
 const { BadRequestError } = require("../../shared/errors");
+const { normalizeUserInput } = require("./normalize-user-input");
 
 const createByStaff = async (payload, actor) => {
   const {
@@ -11,7 +12,7 @@ const createByStaff = async (payload, actor) => {
     phone = null,
     user_image,
     role = "customer",
-  } = payload;
+  } = normalizeUserInput(payload);
 
   // staff hech qachon admin/super_admin bera olmaydi
   if (role === "admin" || role === "super_admin") {

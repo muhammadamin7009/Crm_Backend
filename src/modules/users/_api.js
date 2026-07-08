@@ -62,7 +62,7 @@ router.post(
   postUserByStaff,
 );
 router.post("/users", enforceUserLimit, postUser);
-router.get("/users", isLoggedIn, hasRole("super_admin", "admin", "worker"), hasPermission("users.view"), getUsers);
+router.get("/users", isLoggedIn, hasRole("super_admin", "admin", "worker"), hasPermission("users.view", "client_sales.view", "production.view", "payroll.view"), getUsers);
 router.get("/users/me", isLoggedIn, getMe);
 router.get("/users/:id", isLoggedIn, hasRole("super_admin", "admin"), hasPermission("users.view"), getUser);
 router.patch("/users/me", isLoggedIn, patchMe);
@@ -73,5 +73,6 @@ router.patch("/users/:id/restore", [isLoggedIn, hasRole("super_admin")], restore
 router.delete("/users/:id/permanent", [isLoggedIn, hasRole("super_admin")], permanentlyDeleteUser);
 
 module.exports = router;
+
 
 

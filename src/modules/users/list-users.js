@@ -1,4 +1,30 @@
-const db = require("../../db");
+﻿const db = require("../../db");
+
+const hasPermission = (actor, permission) => {
+  if (actor?.role === "super_admin") return true;
+  if (actor?.role !== "admin") return false;
+  if (actor.permissions?.includes("*")) return true;
+  return actor.permissions?.includes(permission);
+};
+
+const getDirectoryRoles = (actor) => {
+  if (actor?.role !== "admin" || hasPermission(actor, "users.view")) return null;
+
+  const roles = new Set();
+  if (hasPermission(actor, "client_sales.view") || hasPermission(actor, "client_sales.manage")) {
+    roles.add("client");
+  }
+  if (
+    hasPermission(actor, "production.view") ||
+    hasPermission(actor, "production.manage") ||
+    hasPermission(actor, "payroll.view") ||
+    hasPermission(actor, "payroll.manage")
+  ) {
+    roles.add("worker");
+  }
+
+  return [...roles];
+};
 
 const listUsers = async (
   {
@@ -57,8 +83,9 @@ const listUsers = async (
     };
   }
 
+  const limitedRoles = getDirectoryRoles(actor);
   const showDeleted =
-    actor?.role === "super_admin" && (is_deleted === true || is_deleted === "true");
+    limitedRoles === null && actor?.role === "super_admin" && (is_deleted === true || is_deleted === "true");
   const query = db("users")
     .where({ is_deleted: showDeleted })
     .select(
@@ -75,6 +102,18 @@ const listUsers = async (
       "is_deleted",
     );
 
+  if (limitedRoles) {
+    if (!limitedRoles.length) {
+      query.whereRaw("1 = 0");
+    } else if (role && limitedRoles.includes(role)) {
+      query.andWhere("role", role);
+    } else {
+      query.whereIn("role", limitedRoles);
+    }
+  } else if (role) {
+    query.andWhere("role", role);
+  }
+
   if (q) {
     query.andWhere((qb) => {
       qb.whereILike("first_name", `%${q}%`)
@@ -83,8 +122,6 @@ const listUsers = async (
         .orWhereILike("phone", `%${q}%`);
     });
   }
-
-  if (role) query.andWhere("role", role);
 
   const countQuery = query.clone().clearSelect().count({ count: "id" }).first();
 

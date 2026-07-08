@@ -14,10 +14,11 @@ const {
 
 const viewManager = [isLoggedIn, hasRole("super_admin", "admin"), hasPermission("client_sales.view")];
 const manageManager = [isLoggedIn, hasRole("super_admin", "admin"), hasPermission("client_sales.manage")];
+const superAdminOnly = [isLoggedIn, hasRole("super_admin")];
 
 router.get("/client-sales/me", isLoggedIn, hasRole("client"), getMyClientAccount);
 router.get("/client-sales", ...viewManager, getClientSales);
-router.get("/client-sales/summary", ...viewManager, getClientSalesSummary);
+router.get("/client-sales/summary", ...superAdminOnly, getClientSalesSummary);
 router.get("/client-sales/balance", ...viewManager, getClientBalance);
 router.get("/client-sales/:id", ...viewManager, getClientSale);
 router.post("/client-sales/bulk", ...manageManager, createBulkClientSale);

@@ -12,13 +12,19 @@ const hasPermission = (...requiredPermissions) => {
       if (req.user?.role === "super_admin") return next();
       if (req.user?.role !== "admin") return next();
 
-      const rows = await db("user_permissions")
-        .where({ user_id: req.user.id, allowed: true })
-        .whereIn("permission_key", required)
-        .select("permission_key");
+      const permissions = Array.isArray(req.user.permissions) ? req.user.permissions : null;
+      const allowed = permissions
+        ? new Set(permissions)
+        : new Set(
+            (
+              await db("user_permissions")
+                .where({ user_id: req.user.id, allowed: true })
+                .whereIn("permission_key", required)
+                .select("permission_key")
+            ).map((row) => row.permission_key),
+          );
 
-      const allowed = new Set(rows.map((row) => row.permission_key));
-      const ok = required.some((key) => allowed.has(key));
+      const ok = allowed.has("*") || required.some((key) => allowed.has(key));
 
       if (!ok) {
         throw new ForbiddenError("Sizda bu amal uchun ruxsat yo'q");

@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const { isLoggedIn, hasRole } = require("../../shared/auth");
+const { isLoggedIn, hasRole, hasPermission } = require("../../shared/auth");
 const {
   createClientPayment,
   getClientPayments,
@@ -9,26 +9,15 @@ const {
   removeClientPayment,
 } = require("./_controllers");
 
-router.get("/client-payments", isLoggedIn, hasRole("super_admin", "admin"), getClientPayments);
-router.get(
-  "/client-payments/summary",
-  isLoggedIn,
-  hasRole("super_admin", "admin"),
-  getClientPaymentsSummary,
-);
-router.get("/client-payments/:id", isLoggedIn, hasRole("super_admin", "admin"), getClientPayment);
-router.post("/client-payments", isLoggedIn, hasRole("super_admin", "admin"), createClientPayment);
-router.patch(
-  "/client-payments/:id",
-  isLoggedIn,
-  hasRole("super_admin", "admin"),
-  patchClientPayment,
-);
-router.delete(
-  "/client-payments/:id",
-  isLoggedIn,
-  hasRole("super_admin", "admin"),
-  removeClientPayment,
-);
+const viewManager = [isLoggedIn, hasRole("super_admin", "admin"), hasPermission("client_sales.view")];
+const manageManager = [isLoggedIn, hasRole("super_admin", "admin"), hasPermission("client_sales.manage")];
+const superAdminOnly = [isLoggedIn, hasRole("super_admin")];
+
+router.get("/client-payments", ...viewManager, getClientPayments);
+router.get("/client-payments/summary", ...superAdminOnly, getClientPaymentsSummary);
+router.get("/client-payments/:id", ...viewManager, getClientPayment);
+router.post("/client-payments", ...manageManager, createClientPayment);
+router.patch("/client-payments/:id", ...manageManager, patchClientPayment);
+router.delete("/client-payments/:id", ...manageManager, removeClientPayment);
 
 module.exports = router;

@@ -18,6 +18,7 @@ const summaryClientSalesService = require("./summary-client-sales");
 const getClientBalanceService = require("./get-client-balance");
 const getMyClientAccountService = require("./get-my-client-account");
 const { getFormattedSale } = require("./format-sale");
+const { ForbiddenError } = require("../../shared/errors");
 
 const createClientSale = async (req, res, next) => {
   try {
@@ -72,6 +73,11 @@ const getClientSalesSummary = async (req, res, next) => {
 const getClientBalance = async (req, res, next) => {
   try {
     httpValidator({ query: req.query }, clientBalanceSchema);
+
+    if (req.user?.role !== "super_admin" && !req.query.client_id) {
+      throw new ForbiddenError("Umumiy mijoz balansi faqat super_admin uchun.");
+    }
+
     const result = await getClientBalanceService(req.query);
     res.status(200).json(result);
   } catch (error) {

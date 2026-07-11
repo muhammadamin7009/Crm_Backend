@@ -74,6 +74,11 @@ exports.postUserByAdminSchema = {
     phone: phoneSchema,
     user_image: Joi.string().uri().optional().allow(null, ""),
     role: Joi.string().valid("admin", "client", "customer", "worker").required(),
+    permission_preset: Joi.when("role", {
+      is: "admin",
+      then: Joi.string().valid("sales_admin", "production_admin", "accountant", "materials_admin"),
+      otherwise: Joi.forbidden(),
+    }),
   }),
 };
 

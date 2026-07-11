@@ -1,6 +1,6 @@
 ﻿const db = require("../../db");
 const { BadRequestError, NotFoundError } = require("../../shared/errors");
-const { PERMISSIONS } = require("../../shared/auth/permissions");
+const { PERMISSIONS, PERMISSION_PRESETS, getPermissionPreset } = require("../../shared/auth/permissions");
 
 const groupPermissions = (permissions) => {
   const groups = [];
@@ -57,12 +57,15 @@ const listPermissionSettings = async () => {
   return {
     permissions: PERMISSIONS,
     groups: groupPermissions(PERMISSIONS),
+    presets: PERMISSION_PRESETS,
     admins: admins.map((admin) => ({
       ...admin,
       permissions: normalizePermissions(byUser[admin.id] || []),
     })),
   };
 };
+
+const listPermissionPresets = () => ({ presets: PERMISSION_PRESETS });
 
 const getUserPermissionSettings = async (id) => {
   const user = await db("users")
@@ -121,8 +124,18 @@ const updateUserPermissions = async (id, permissions, actor) => {
   };
 };
 
+const applyPermissionPreset = async (id, presetKey, actor) => {
+  const preset = getPermissionPreset(presetKey);
+  if (!preset) throw new BadRequestError("Ruxsat shabloni topilmadi");
+
+  const result = await updateUserPermissions(id, preset.permissions, actor);
+  return { ...result, message: "Admin ruxsat shabloni saqlandi", preset };
+};
+
 module.exports = {
   listPermissionSettings,
+  listPermissionPresets,
   getUserPermissionSettings,
   updateUserPermissions,
+  applyPermissionPreset,
 };

@@ -25,7 +25,66 @@ const ADMIN_DEFAULT_PERMISSIONS = PERMISSIONS
   .map((item) => item.key)
   .filter((key) => key !== "permissions.manage");
 
+const PERMISSION_PRESETS = [
+  {
+    key: "sales_admin",
+    label: "Savdo admini",
+    description: "Mijozlar, mahsulotlar va savdo hisobini boshqaradi.",
+    permissions: [
+      "dashboard.view",
+      "users.view",
+      "products.view",
+      "client_sales.view",
+      "client_sales.manage",
+    ],
+  },
+  {
+    key: "production_admin",
+    label: "Ishlab chiqarish admini",
+    description: "Ishchilar, mahsulotlar va ishlab chiqarish hisobotini boshqaradi.",
+    permissions: [
+      "dashboard.view",
+      "users.view",
+      "employees.view",
+      "products.view",
+      "production.view",
+      "production.manage",
+      "payroll.view",
+    ],
+  },
+  {
+    key: "accountant",
+    label: "Hisobchi",
+    description: "Savdo, oylik, xarajat va moliyaviy hisobotlar bilan ishlaydi.",
+    permissions: [
+      "dashboard.view",
+      "dashboard.finance",
+      "users.view",
+      "payroll.view",
+      "payroll.manage",
+      "client_sales.view",
+      "finance.view",
+      "finance.manage",
+    ],
+  },
+  {
+    key: "materials_admin",
+    label: "Homashyo admini",
+    description: "Ta'minotchilar, homashyo xaridi va ombor kirimini boshqaradi.",
+    permissions: [
+      "dashboard.view",
+      "material_purchases.view",
+      "material_purchases.manage",
+    ],
+  },
+];
+
+const getPermissionPreset = (key) =>
+  PERMISSION_PRESETS.find((preset) => preset.key === key) || null;
+
 module.exports = {
   PERMISSIONS,
   ADMIN_DEFAULT_PERMISSIONS,
+  PERMISSION_PRESETS,
+  getPermissionPreset,
 };

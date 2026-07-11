@@ -83,6 +83,15 @@ const list = {
   sort_order: Joi.string().valid("asc", "desc").default("desc"),
 };
 exports.listSchema = { query: Joi.object(list) };
+exports.stockSchema = {
+  query: Joi.object({
+    q: Joi.string().allow(""),
+    date_from: Joi.date().iso(),
+    date_to: Joi.date().iso(),
+    limit: Joi.number().integer().min(1).max(100).default(100),
+    offset: Joi.number().integer().min(0).default(0),
+  }),
+};
 exports.balanceSchema = {
   query: Joi.object({ supplier_id: id, date_from: Joi.date().iso(), date_to: Joi.date().iso() }),
 };

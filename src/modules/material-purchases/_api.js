@@ -11,6 +11,7 @@ router.patch("/suppliers/:id", ...manageManager, c.updateSupplier);
 router.delete("/suppliers/:id", ...manageManager, c.deleteSupplier);
 
 router.get("/raw-materials", ...viewManager, c.listMaterials);
+router.get("/raw-materials/stock", ...viewManager, c.materialStockReport);
 router.post("/raw-materials", ...manageManager, c.createMaterial);
 router.patch("/raw-materials/:id", ...manageManager, c.updateMaterial);
 router.delete("/raw-materials/:id", ...manageManager, c.deleteMaterial);

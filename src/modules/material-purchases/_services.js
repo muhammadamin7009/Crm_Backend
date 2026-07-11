@@ -118,6 +118,56 @@ const listMaterials = async ({ q = "", limit = 100, offset = 0 }) => {
     },
   };
 };
+
+const materialStockReport = async ({
+  q = "",
+  date_from,
+  date_to,
+  limit = 100,
+  offset = 0,
+}) => {
+  const query = db("material_purchase_items as mpi")
+    .join("material_purchases as mp", "mp.id", "mpi.purchase_id")
+    .join("raw_materials as rm", "rm.id", "mpi.raw_material_id")
+    .where("mp.is_deleted", false)
+    .where("rm.is_deleted", false);
+
+  if (q) query.andWhereILike("rm.name", `%${q}%`);
+  if (date_from) query.andWhere("mp.purchased_at", ">=", date_from);
+  if (date_to) query.andWhere("mp.purchased_at", "<=", date_to);
+
+  const [rows, count] = await Promise.all([
+    query
+      .clone()
+      .groupBy("rm.id", "rm.name", "rm.unit")
+      .select("rm.id", "rm.name", "rm.unit")
+      .sum({ total_quantity: "mpi.quantity" })
+      .sum({ total_amount: "mpi.total_amount" })
+      .orderBy("rm.name", "asc")
+      .limit(Number(limit))
+      .offset(Number(offset)),
+    query.clone().countDistinct({ count: "rm.id" }).first(),
+  ]);
+
+  return {
+    stock: rows.map((row) => {
+      const totalQuantity = Number(row.total_quantity || 0);
+      const totalAmount = Number(row.total_amount || 0);
+
+      return {
+        ...row,
+        total_quantity: totalQuantity,
+        total_amount: totalAmount,
+        average_price: totalQuantity ? totalAmount / totalQuantity : 0,
+      };
+    }),
+    pageInfo: {
+      total: Number(count.count || 0),
+      limit: Number(limit),
+      offset: Number(offset),
+    },
+  };
+};
 const createMaterial = async (body) => ({
   raw_material: (
     await db("raw_materials")
@@ -359,6 +409,7 @@ module.exports = {
   updateSupplier,
   deleteSupplier,
   listMaterials,
+  materialStockReport,
   createMaterial,
   updateMaterial,
   deleteMaterial,

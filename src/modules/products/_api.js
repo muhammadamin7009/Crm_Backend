@@ -33,8 +33,8 @@ const upload = multer({
 const managerView = [isLoggedIn, hasRole("super_admin", "admin"), hasPermission("products.view")];
 const managerManage = [isLoggedIn, hasRole("super_admin", "admin"), hasPermission("products.manage")];
 
-router.get("/products", isLoggedIn, getProducts);
-router.get("/products/:id", isLoggedIn, getProduct);
+router.get("/products", isLoggedIn, hasPermission("products.view"), getProducts);
+router.get("/products/:id", isLoggedIn, hasPermission("products.view"), getProduct);
 router.post("/products", ...managerManage, createProduct);
 router.patch("/products/:id", ...managerManage, patchProduct);
 router.delete("/products/:id", ...managerManage, removeProduct);

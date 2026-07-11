@@ -1,36 +1,42 @@
 const router = require("express").Router();
-const { isLoggedIn, hasRole } = require("../../shared/auth");
+const { isLoggedIn, hasRole, hasPermission } = require("../../shared/auth");
 const c = require("./_controllers");
+
+const viewAdvance = [
+  isLoggedIn,
+  hasRole("super_admin", "admin", "worker"),
+  hasPermission("payroll.view"),
+];
+const manageAdvance = [
+  isLoggedIn,
+  hasRole("super_admin", "admin"),
+  hasPermission("payroll.manage"),
+];
 
 router.get(
   "/worker-advances",
-  isLoggedIn,
-  hasRole("super_admin", "admin", "worker"),
+  ...viewAdvance,
   c.getWorkerAdvances,
 );
 router.get(
   "/worker-advances/balance",
-  isLoggedIn,
-  hasRole("super_admin", "admin", "worker"),
+  ...viewAdvance,
   c.getWorkerAdvanceBalance,
 );
 router.get(
   "/worker-advances/:id",
-  isLoggedIn,
-  hasRole("super_admin", "admin", "worker"),
+  ...viewAdvance,
   c.getWorkerAdvance,
 );
-router.post("/worker-advances", isLoggedIn, hasRole("super_admin", "admin"), c.createWorkerAdvance);
+router.post("/worker-advances", ...manageAdvance, c.createWorkerAdvance);
 router.patch(
   "/worker-advances/:id",
-  isLoggedIn,
-  hasRole("super_admin", "admin"),
+  ...manageAdvance,
   c.patchWorkerAdvance,
 );
 router.delete(
   "/worker-advances/:id",
-  isLoggedIn,
-  hasRole("super_admin", "admin"),
+  ...manageAdvance,
   c.removeWorkerAdvance,
 );
 

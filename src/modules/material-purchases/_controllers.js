@@ -30,6 +30,7 @@ module.exports = {
   updateSupplier: handler(schemas.updateSupplierSchema, s.updateSupplier),
   deleteSupplier: handler(schemas.idSchema, s.deleteSupplier, 200, "params"),
   listMaterials: handler(schemas.listSchema, s.listMaterials, 200, "query"),
+  materialStockReport: handler(schemas.stockSchema, s.materialStockReport, 200, "query"),
   createMaterial: handler(schemas.createMaterialSchema, s.createMaterial, 201),
   updateMaterial: handler(schemas.updateMaterialSchema, s.updateMaterial),
   deleteMaterial: handler(schemas.idSchema, s.deleteMaterial, 200, "params"),

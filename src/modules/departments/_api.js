@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const { isLoggedIn, hasRole } = require("../../shared/auth");
+const { isLoggedIn, hasRole, hasPermission } = require("../../shared/auth");
 const {
   createDepartment,
   getDepartments,
@@ -8,15 +8,25 @@ const {
   removeDepartment,
 } = require("./_controllers");
 
-router.get("/departments", isLoggedIn, hasRole("super_admin", "admin", "worker"), getDepartments);
-router.get(
-  "/departments/:id",
+const viewDepartment = [
   isLoggedIn,
   hasRole("super_admin", "admin", "worker"),
+  hasPermission("products.view", "production.view", "employees.view"),
+];
+const manageDepartment = [
+  isLoggedIn,
+  hasRole("super_admin", "admin"),
+  hasPermission("products.manage", "production.manage", "employees.manage"),
+];
+
+router.get("/departments", ...viewDepartment, getDepartments);
+router.get(
+  "/departments/:id",
+  ...viewDepartment,
   getDepartment,
 );
-router.post("/departments", isLoggedIn, hasRole("super_admin", "admin"), createDepartment);
-router.patch("/departments/:id", isLoggedIn, hasRole("super_admin", "admin"), patchDepartment);
-router.delete("/departments/:id", isLoggedIn, hasRole("super_admin", "admin"), removeDepartment);
+router.post("/departments", ...manageDepartment, createDepartment);
+router.patch("/departments/:id", ...manageDepartment, patchDepartment);
+router.delete("/departments/:id", ...manageDepartment, removeDepartment);
 
 module.exports = router;

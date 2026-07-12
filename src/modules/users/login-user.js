@@ -54,6 +54,7 @@ const publicUser = async (existing, company) => ({
   company_id: existing.company_id,
   company_slug: company.slug,
   company_name: company.name,
+  company_logo_url: company.logo_url || null,
   plan_code: company.plan_code,
   plan_name: company.plan_name,
   plan_features: company.plan_features || [],

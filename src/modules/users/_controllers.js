@@ -213,7 +213,16 @@ const getMe = async (req, res, next) => {
     // isLoggedIn middleware req.user ni beradi
     const result = await getMeService(req.user);
 
-    res.status(200).json(result.me);
+    res.status(200).json({
+      ...result.me,
+      company_id: req.company.id,
+      company_slug: req.company.slug,
+      company_name: req.company.name,
+      company_logo_url: req.company.logo_url || null,
+      plan_code: req.company.plan_code,
+      plan_name: req.company.plan_name,
+      plan_features: req.company.plan_features || [],
+    });
   } catch (error) {
     next(error);
   }

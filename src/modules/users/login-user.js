@@ -153,7 +153,7 @@ const login = async ({ username, password, device_id }, company, metadata = {}) 
     ip_address: meta.ip_address || null,
     expires_at: new Date(Date.now() + 5 * 60 * 1000),
   });
-  await sendSms({
+  const sentSms = await sendSms({
     phone: existing.phone,
     message: `ZERR CRM tasdiqlash kodi: ${code}. Kod 5 daqiqa amal qiladi.`,
   });
@@ -161,7 +161,7 @@ const login = async ({ username, password, device_id }, company, metadata = {}) 
   return {
     mfa_required: true,
     challenge_id: challengeId,
-    masked_phone: maskPhone(existing.phone),
+    masked_phone: maskPhone(sentSms?.phone || existing.phone),
     expires_in: 300,
   };
 };

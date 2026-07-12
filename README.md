@@ -1,5 +1,30 @@
 # Crm_Backend
 
+## SMS va MFA
+
+Developmentda barcha super admin OTP kodlarini bitta test raqamga yo'naltirish mumkin:
+
+```env
+NODE_ENV=development
+SMS_PROVIDER=console
+SMS_TEST_PHONE=+998915717009
+```
+
+`console` provider SMSni telefonga yubormaydi, kodni backend terminaliga chiqaradi. Haqiqiy SMS uchun
+Eskiz credentiallarini kiriting va `SMS_PROVIDER=eskiz` qiling:
+
+```env
+SMS_PROVIDER=eskiz
+ESKIZ_TOKEN=
+# Token bo'lmasa ESKIZ_EMAIL va ESKIZ_PASSWORD orqali olinadi.
+ESKIZ_EMAIL=
+ESKIZ_PASSWORD=
+ESKIZ_FROM=4546
+```
+
+`SMS_TEST_PHONE` faqat `NODE_ENV` production bo'lmaganda ishlaydi. Productionda OTP super adminning
+bazadagi haqiqiy telefon raqamiga yuboriladi.
+
 ## Demo ma'lumotlari
 
 Demo skript tanlangan korxonaga 3 mijoz, 4 ishchi, 2 mahsulot, 2 homashyo xaridi,

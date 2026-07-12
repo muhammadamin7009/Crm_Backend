@@ -15,5 +15,13 @@ module.exports = {
   },
   sms: {
     provider: process.env.SMS_PROVIDER || "console",
+    testPhone: process.env.SMS_TEST_PHONE || "",
+    eskiz: {
+      baseUrl: process.env.ESKIZ_BASE_URL || "https://notify.eskiz.uz/api",
+      token: process.env.ESKIZ_TOKEN || "",
+      email: process.env.ESKIZ_EMAIL || "",
+      password: process.env.ESKIZ_PASSWORD || "",
+      from: process.env.ESKIZ_FROM || "4546",
+    },
   },
 };

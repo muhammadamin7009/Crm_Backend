@@ -15,6 +15,8 @@
   { key: "client_sales.manage", label: "Mijoz savdosini boshqarish", group: "Tashqi hisob", description: "Savdo va mijoz to'lovlarini qo'shish yoki o'zgartirish." },
   { key: "material_purchases.view", label: "Homashyo xaridini ko'rish", group: "Tashqi hisob", description: "Homashyo xaridi va ta'minotchi qarzlarini ko'rish." },
   { key: "material_purchases.manage", label: "Homashyo xaridini boshqarish", group: "Tashqi hisob", description: "Ta'minotchi, homashyo, xarid va to'lovlarni boshqarish." },
+  { key: "inventory.view", label: "Ombor qoldig'ini ko'rish", group: "Ombor", description: "Omborlar, qoldiq va harakatlar tarixini ko'rish." },
+  { key: "inventory.manage", label: "Omborni boshqarish", group: "Ombor", description: "Ombor, kirim, chiqim, ko'chirish va minimal qoldiqni boshqarish." },
   { key: "finance.view", label: "Moliya hisobini ko'rish", group: "Moliya", description: "Kassa, xarajatlar, hisobotlar va umumiy moliyani ko'rish." },
   { key: "finance.manage", label: "Moliya hisobini boshqarish", group: "Moliya", description: "Kassa, xarajat va moliyaviy amallarni bajarish." },
   { key: "audit_logs.view", label: "Amallar tarixini ko'rish", group: "Nazorat", description: "Kim qachon nima qilganini ko'rish." },
@@ -75,6 +77,8 @@ const PERMISSION_PRESETS = [
       "dashboard.view",
       "material_purchases.view",
       "material_purchases.manage",
+      "inventory.view",
+      "inventory.manage",
     ],
   },
 ];

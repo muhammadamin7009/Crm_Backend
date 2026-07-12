@@ -79,6 +79,14 @@ const createCompany = async (body) => {
         is_deleted: false,
       })
       .returning(["id", "first_name", "last_name", "username", "role"]);
+    await trx("warehouses").insert({
+      company_id: company.id,
+      name: "Asosiy ombor",
+      code: "MAIN",
+      is_default: true,
+      is_active: true,
+      created_by: admin.id,
+    });
     return { company, super_admin: admin };
   });
 };
@@ -188,6 +196,9 @@ const deleteCompany = async (id, confirmSlug) =>
       "auth_challenges",
       "user_sessions",
       "user_permissions",
+      "inventory_movements",
+      "inventory_balances",
+      "warehouses",
       "cash_transactions",
       "expenses",
       "client_returns",

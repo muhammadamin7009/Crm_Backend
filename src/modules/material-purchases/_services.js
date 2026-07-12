@@ -1,5 +1,6 @@
 const db = require("../../db");
 const { BadRequestError, NotFoundError } = require("../../shared/errors");
+const inventory = require("../inventory/_services");
 
 const clean = (value) => value || null;
 const getSupplier = async (id) => {
@@ -249,6 +250,7 @@ const createPurchase = async (body, actor) => {
     await trx("material_purchase_items").insert(
       items.map((item) => ({ ...item, purchase_id: purchaseId })),
     );
+    await inventory.syncMaterialPurchase(trx, purchaseId, actor);
     return {
       material_purchase: await formatPurchase(purchaseId, trx),
       previous_debt: previous.debt_amount,
@@ -257,7 +259,7 @@ const createPurchase = async (body, actor) => {
   });
 };
 
-const updatePurchase = async (body, id) => {
+const updatePurchase = async (body, id, actor) => {
   const existing = await formatPurchase(id);
   const supplierId =
     body.supplier_id !== undefined ? Number(body.supplier_id) : Number(existing.supplier_id);
@@ -291,16 +293,19 @@ const updatePurchase = async (body, id) => {
         items.map((item) => ({ ...item, purchase_id: id })),
       );
     }
+    await inventory.syncMaterialPurchase(trx, id, actor);
     return { material_purchase: await formatPurchase(id, trx) };
   });
 };
-const deletePurchase = async (id) => {
-  await formatPurchase(id);
-  await db("material_purchases")
-    .where({ id })
-    .update({ is_deleted: true, updated_at: db.fn.now() });
-  return { message: "Xarid o'chirildi" };
-};
+const deletePurchase = async (id, actor) =>
+  db.transaction(async (trx) => {
+    await formatPurchase(id, trx);
+    await trx("material_purchases")
+      .where({ id })
+      .update({ is_deleted: true, updated_at: trx.fn.now() });
+    await inventory.syncMaterialPurchase(trx, id, actor);
+    return { message: "Xarid o'chirildi" };
+  });
 
 const listPurchases = async ({
   q = "",

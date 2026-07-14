@@ -4,6 +4,9 @@ const jwt = require("jsonwebtoken");
 const config = require("../../shared/config");
 const { BadRequestError, NotFoundError, UnauthorizedError } = require("../../shared/errors");
 
+const setTenantContext = (trx, companyId) =>
+  trx.raw("SELECT set_config('app.current_company_id', ?, true)", [String(companyId)]);
+
 const login = async ({ username, password }) => {
   const admin = await db.root("platform_admins").where({ username, is_active: true }).first();
   if (!admin || !(await bcrypt.compare(password, admin.password)))
@@ -18,8 +21,8 @@ const login = async ({ username, password }) => {
   };
 };
 
-const listCompanies = async () => ({
-  companies: await db
+const listCompanies = async () => {
+  const companies = await db
     .root("companies as c")
     .leftJoin("company_subscriptions as cs", "cs.company_id", "c.id")
     .leftJoin("subscription_plans as sp", "sp.id", "cs.plan_id")
@@ -34,17 +37,29 @@ const listCompanies = async () => ({
       "sp.max_users",
       "sp.storage_mb",
       db.root.raw(
-        "(SELECT COUNT(*) FROM users u WHERE u.company_id=c.id AND u.is_deleted=false) AS users_count",
-      ),
-      db.root.raw(
         "(SELECT COALESCE(SUM(amount),0) FROM subscription_payments pay WHERE pay.company_id=c.id) AS total_paid",
       ),
       db.root.raw(
         "(SELECT MAX(paid_at) FROM subscription_payments pay WHERE pay.company_id=c.id) AS last_paid_at",
       ),
     )
-    .orderBy("c.created_at", "desc"),
-});
+    .orderBy("c.created_at", "desc");
+
+  const companiesWithUserCounts = await Promise.all(
+    companies.map((company) =>
+      db.root.transaction(async (trx) => {
+        await setTenantContext(trx, company.id);
+        const row = await trx("users")
+          .where({ company_id: company.id, is_deleted: false })
+          .count({ count: "id" })
+          .first();
+        return { ...company, users_count: Number(row?.count || 0) };
+      }),
+    ),
+  );
+
+  return { companies: companiesWithUserCounts };
+};
 
 const createCompany = async (body) => {
   const duplicate = await db.root("companies").where({ slug: body.slug }).first();
@@ -121,17 +136,19 @@ const updateCompany = async (body, id) =>
   });
 
 const getCompanyManagement = async (id) => {
-  const company = await db.root("companies").where({ id }).first();
-  if (!company) throw new NotFoundError("Korxona topilmadi");
+  return db.root.transaction(async (trx) => {
+    const company = await trx("companies").where({ id }).first();
+    if (!company) throw new NotFoundError("Korxona topilmadi");
 
-  const superAdmin = await db
-    .root("users")
-    .where({ company_id: id, role: "super_admin", is_deleted: false })
-    .select("id", "first_name", "last_name", "username", "phone", "user_image", "updated_at")
-    .first();
-  if (!superAdmin) throw new NotFoundError("Korxona super administratori topilmadi");
+    await setTenantContext(trx, id);
+    const superAdmin = await trx("users")
+      .where({ company_id: id, role: "super_admin", is_deleted: false })
+      .select("id", "first_name", "last_name", "username", "phone", "user_image", "updated_at")
+      .first();
+    if (!superAdmin) throw new NotFoundError("Korxona super administratori topilmadi");
 
-  return { company, super_admin: superAdmin };
+    return { company, super_admin: superAdmin };
+  });
 };
 
 const updateCompanyManagement = async (body, id) =>
@@ -139,6 +156,7 @@ const updateCompanyManagement = async (body, id) =>
     const company = await trx("companies").where({ id }).first();
     if (!company) throw new NotFoundError("Korxona topilmadi");
 
+    await setTenantContext(trx, id);
     const superAdmin = await trx("users")
       .where({ company_id: id, role: "super_admin", is_deleted: false })
       .first();
@@ -191,6 +209,7 @@ const deleteCompany = async (id, confirmSlug) =>
       throw new BadRequestError("Tasdiqlash uchun korxona kodini aynan kiriting");
     }
 
+    await setTenantContext(trx, id);
     const tables = [
       "audit_logs",
       "auth_challenges",
@@ -282,4 +301,3 @@ module.exports = {
   listPayments,
   listPlans,
 };
-

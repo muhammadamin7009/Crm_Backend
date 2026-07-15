@@ -6,11 +6,11 @@ const idParams = Joi.object({
 
 const productFields = {
   category_id: Joi.number().integer().positive().allow(null),
+  category_name: Joi.string().trim().max(100).allow(null, ""),
   name: Joi.string().trim().max(150),
   model: Joi.string().trim().max(100).allow(null, ""),
-  sku: Joi.string().trim().max(100),
   color: Joi.string().trim().max(50).allow(null, ""),
-  unit: Joi.string().trim().max(20),
+  unit: Joi.string().trim().valid("par"),
   description: Joi.string().trim().allow(null, ""),
   purchase_price: Joi.number().precision(2).min(0),
   sale_price: Joi.number().precision(2).min(0),
@@ -21,7 +21,6 @@ exports.createProductSchema = {
   body: Joi.object({
     ...productFields,
     name: productFields.name.required(),
-    sku: productFields.sku.required(),
     sale_price: productFields.sale_price.required(),
   }),
 };
@@ -33,6 +32,43 @@ exports.updateProductSchema = {
 
 exports.showProductSchema = { params: idParams };
 exports.deleteProductSchema = { params: idParams };
+
+const productOptionParams = Joi.object({
+  type: Joi.string().valid("model", "color").required(),
+});
+
+exports.updateProductOptionSchema = {
+  params: productOptionParams,
+  body: Joi.object({
+    current_value: Joi.string().trim().required(),
+    new_value: Joi.string().trim().required(),
+  }),
+};
+
+exports.deleteProductOptionSchema = {
+  params: productOptionParams,
+  body: Joi.object({
+    value: Joi.string().trim().required(),
+  }),
+};
+
+exports.productRecipeSchema = { params: idParams };
+exports.updateProductRecipeSchema = {
+  params: idParams,
+  body: Joi.object({
+    completion_department_id: Joi.number().integer().positive().allow(null).required(),
+    items: Joi.array()
+      .items(
+        Joi.object({
+          raw_material_id: Joi.number().integer().positive().required(),
+          quantity_per_pair: Joi.number().positive().precision(3).required(),
+        }),
+      )
+      .max(100)
+      .unique("raw_material_id")
+      .required(),
+  }),
+};
 
 const departmentPriceParams = Joi.object({
   id: Joi.number().integer().positive().required(),

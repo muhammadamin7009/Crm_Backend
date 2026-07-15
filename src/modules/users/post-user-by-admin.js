@@ -2,11 +2,21 @@ const db = require("../../db");
 const bcrypt = require("bcryptjs");
 const { BadRequestError } = require("../../shared/errors");
 const { normalizeUserInput } = require("./normalize-user-input");
-const { getPermissionPreset } = require("../../shared/auth/permissions");
+const {
+  getPermissionPreset,
+  INVENTORY_WORKER_PERMISSIONS,
+} = require("../../shared/auth/permissions");
 
 const createByAdmin = async (payload) => {
-  const { first_name, last_name, username, password, user_image, phone = null, role } =
-    normalizeUserInput(payload);
+  const {
+    first_name,
+    last_name,
+    username,
+    password,
+    user_image,
+    phone = null,
+    role,
+  } = normalizeUserInput(payload);
 
   // super_admin yaratishga ruxsat yo'q (projectda 1ta)
   if (role === "super_admin") {
@@ -32,11 +42,28 @@ const createByAdmin = async (payload) => {
         role,
         is_deleted: false,
       })
-      .returning(["id", "company_id", "first_name", "last_name", "username", "role", "phone", "created_at"]);
+      .returning([
+        "id",
+        "company_id",
+        "first_name",
+        "last_name",
+        "username",
+        "role",
+        "phone",
+        "created_at",
+      ]);
 
-    if (role === "admin" && preset) {
+    const presetPermissions = preset
+      ? preset.permissions.filter(
+          (permission) =>
+            role === "admin" ||
+            (role === "worker" && INVENTORY_WORKER_PERMISSIONS.includes(permission)),
+        )
+      : [];
+
+    if (presetPermissions.length) {
       await trx("user_permissions").insert(
-        preset.permissions.map((permissionKey) => ({
+        presetPermissions.map((permissionKey) => ({
           company_id: created.company_id,
           user_id: created.id,
           permission_key: permissionKey,

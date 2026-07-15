@@ -120,13 +120,7 @@ const listMaterials = async ({ q = "", limit = 100, offset = 0 }) => {
   };
 };
 
-const materialStockReport = async ({
-  q = "",
-  date_from,
-  date_to,
-  limit = 100,
-  offset = 0,
-}) => {
+const materialStockReport = async ({ q = "", date_from, date_to, limit = 100, offset = 0 }) => {
   const query = db("material_purchase_items as mpi")
     .join("material_purchases as mp", "mp.id", "mpi.purchase_id")
     .join("raw_materials as rm", "rm.id", "mpi.raw_material_id")
@@ -190,6 +184,16 @@ const updateMaterial = async (body, id) => {
 };
 const deleteMaterial = async (id) => {
   await getMaterial(id);
+  const usedInRecipe = await db("product_materials as pm")
+    .join("products as p", "p.id", "pm.product_id")
+    .where({ "pm.raw_material_id": id, "p.is_deleted": false })
+    .select("p.name")
+    .first();
+  if (usedInRecipe) {
+    throw new BadRequestError(
+      `Bu homashyo ${usedInRecipe.name} retseptida ishlatilgan. Avval retseptdan olib tashlang`,
+    );
+  }
   const used = await db("material_purchase_items").where({ raw_material_id: id }).first();
   if (used) throw new BadRequestError("Homashyoda xarid tarixi bor, o'chirib bo'lmaydi");
   await db("raw_materials").where({ id }).update({ is_deleted: true, updated_at: db.fn.now() });

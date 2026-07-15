@@ -5,6 +5,7 @@ const idParams = Joi.object({
 });
 
 const itemType = Joi.string().valid("product", "raw_material");
+const warehouseType = Joi.string().valid("product", "raw_material", "mixed");
 
 const paging = {
   q: Joi.string().allow("").max(120).default(""),
@@ -21,8 +22,15 @@ exports.listWarehouses = {
 exports.createWarehouse = {
   body: Joi.object({
     name: Joi.string().trim().min(2).max(120).required(),
-    code: Joi.string().trim().uppercase().pattern(/^[A-Z0-9_-]+$/).min(2).max(40).required(),
+    code: Joi.string()
+      .trim()
+      .uppercase()
+      .pattern(/^[A-Z0-9_-]+$/)
+      .min(2)
+      .max(40)
+      .required(),
     location: Joi.string().trim().allow("", null).max(255),
+    warehouse_type: warehouseType.default("mixed"),
     is_default: Joi.boolean().default(false),
   }),
 };
@@ -31,8 +39,14 @@ exports.updateWarehouse = {
   params: idParams,
   body: Joi.object({
     name: Joi.string().trim().min(2).max(120),
-    code: Joi.string().trim().uppercase().pattern(/^[A-Z0-9_-]+$/).min(2).max(40),
+    code: Joi.string()
+      .trim()
+      .uppercase()
+      .pattern(/^[A-Z0-9_-]+$/)
+      .min(2)
+      .max(40),
     location: Joi.string().trim().allow("", null).max(255),
+    warehouse_type: warehouseType,
     is_default: Joi.boolean(),
   }).min(1),
 };
@@ -97,6 +111,18 @@ exports.createMovement = {
   }),
 };
 
+exports.createProductionReceipt = {
+  body: Joi.object({
+    warehouse_id: Joi.number().integer().positive().required(),
+    product_id: Joi.number().integer().positive().required(),
+    quantity: Joi.number().positive().precision(3).required(),
+    unit_cost: Joi.number().min(0).precision(2).allow(null),
+    occurred_at: Joi.date().iso(),
+    note: Joi.string().trim().allow("", null).max(1000),
+    idempotency_key: Joi.string().trim().max(100).required(),
+  }),
+};
+
 exports.createTransfer = {
   body: Joi.object({
     from_warehouse_id: Joi.number().integer().positive().required(),
@@ -112,4 +138,33 @@ exports.createTransfer = {
       ? helpers.error("any.invalid")
       : value,
   ),
+};
+
+exports.listCounts = {
+  query: Joi.object({
+    ...paging,
+    warehouse_id: Joi.number().integer().positive(),
+    date_from: Joi.date().iso(),
+    date_to: Joi.date().iso(),
+  }),
+};
+
+exports.createCount = {
+  body: Joi.object({
+    warehouse_id: Joi.number().integer().positive().required(),
+    counted_at: Joi.date().iso(),
+    note: Joi.string().trim().allow("", null).max(1000),
+    idempotency_key: Joi.string().trim().max(100).required(),
+    items: Joi.array()
+      .items(
+        Joi.object({
+          item_type: itemType.required(),
+          item_id: Joi.number().integer().positive().required(),
+          counted_quantity: Joi.number().min(0).precision(3).required(),
+        }),
+      )
+      .min(1)
+      .max(500)
+      .required(),
+  }),
 };

@@ -69,9 +69,13 @@ const getWorkerOutput = async (req, res, next) => {
 const patchWorkerOutput = async (req, res, next) => {
   try {
     httpValidator({ body: req.body, params: req.params }, updateWorkerOutputSchema);
-    const result = await updateWorkerOutputService(req.body, {
-      id: Number(req.params.id),
-    });
+    const result = await updateWorkerOutputService(
+      req.body,
+      {
+        id: Number(req.params.id),
+      },
+      req.user,
+    );
     res.status(200).json(result);
   } catch (error) {
     next(error);
@@ -81,7 +85,7 @@ const patchWorkerOutput = async (req, res, next) => {
 const removeWorkerOutput = async (req, res, next) => {
   try {
     httpValidator({ params: req.params }, deleteWorkerOutputSchema);
-    const result = await deleteWorkerOutputService({ id: Number(req.params.id) });
+    const result = await deleteWorkerOutputService({ id: Number(req.params.id) }, req.user);
     res.status(200).json(result);
   } catch (error) {
     next(error);

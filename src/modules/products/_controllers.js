@@ -10,6 +10,10 @@ const {
   listProductDepartmentPricesSchema,
   upsertProductDepartmentPricesSchema,
   updateProductDepartmentPriceSchema,
+  updateProductOptionSchema,
+  deleteProductOptionSchema,
+  productRecipeSchema,
+  updateProductRecipeSchema,
 } = require("./_schemas");
 const createProductService = require("./create-product");
 const listProductsService = require("./list-products");
@@ -22,6 +26,67 @@ const deleteProductImageService = require("./delete-product-image");
 const listProductDepartmentPricesService = require("./list-product-department-prices");
 const upsertProductDepartmentPricesService = require("./upsert-product-department-prices");
 const updateProductDepartmentPriceService = require("./update-product-department-price");
+const {
+  listProductOptions: listProductOptionsService,
+  updateProductOption: updateProductOptionService,
+  deleteProductOption: deleteProductOptionService,
+} = require("./product-options");
+const {
+  getProductRecipe: getProductRecipeService,
+  updateProductRecipe: updateProductRecipeService,
+} = require("./product-recipe");
+
+const getProductRecipe = async (req, res, next) => {
+  try {
+    httpValidator({ params: req.params }, productRecipeSchema);
+    res.status(200).json(await getProductRecipeService(Number(req.params.id)));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const putProductRecipe = async (req, res, next) => {
+  try {
+    httpValidator({ params: req.params, body: req.body }, updateProductRecipeSchema);
+    res
+      .status(200)
+      .json(await updateProductRecipeService(Number(req.params.id), req.body, req.user));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getProductOptions = async (_req, res, next) => {
+  try {
+    res.status(200).json(await listProductOptionsService());
+  } catch (error) {
+    next(error);
+  }
+};
+
+const patchProductOption = async (req, res, next) => {
+  try {
+    httpValidator({ params: req.params, body: req.body }, updateProductOptionSchema);
+    const result = await updateProductOptionService(
+      req.params.type,
+      req.body.current_value,
+      req.body.new_value,
+    );
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const removeProductOption = async (req, res, next) => {
+  try {
+    httpValidator({ params: req.params, body: req.body }, deleteProductOptionSchema);
+    const result = await deleteProductOptionService(req.params.type, req.body.value);
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
 
 const createProduct = async (req, res, next) => {
   try {
@@ -56,9 +121,13 @@ const getProduct = async (req, res, next) => {
 const patchProduct = async (req, res, next) => {
   try {
     httpValidator({ body: req.body, params: req.params }, updateProductSchema);
-    const result = await updateProductService(req.body, {
-      id: Number(req.params.id),
-    });
+    const result = await updateProductService(
+      req.body,
+      {
+        id: Number(req.params.id),
+      },
+      req.user,
+    );
     res.status(200).json(result);
   } catch (error) {
     next(error);
@@ -168,4 +237,9 @@ module.exports = {
   addProductImage,
   setPrimaryProductImage,
   removeProductImage,
+  getProductOptions,
+  patchProductOption,
+  removeProductOption,
+  getProductRecipe,
+  putProductRecipe,
 };

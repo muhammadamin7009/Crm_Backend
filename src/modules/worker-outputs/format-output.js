@@ -18,6 +18,7 @@ const selectOutputFields = (query) =>
     "p.name as product_name",
     "p.model as product_model",
     "p.sku as product_sku",
+    "p.unit as product_unit",
     "wo.department_id",
     "d.name as department_name",
     "d.code as department_code",

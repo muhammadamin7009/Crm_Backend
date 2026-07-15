@@ -1,6 +1,13 @@
 ﻿const db = require("../../db");
 const { BadRequestError, NotFoundError } = require("../../shared/errors");
-const { PERMISSIONS, PERMISSION_PRESETS, getPermissionPreset } = require("../../shared/auth/permissions");
+const {
+  PERMISSIONS,
+  PERMISSION_PRESETS,
+  getPermissionPreset,
+  INVENTORY_WORKER_PERMISSIONS,
+} = require("../../shared/auth/permissions");
+
+const MANAGED_ROLES = ["admin", "worker"];
 
 const groupPermissions = (permissions) => {
   const groups = [];
@@ -29,18 +36,31 @@ const normalizePermissions = (permissions = []) => {
   [...current].forEach((key) => {
     const viewKey = getRequiredViewPermission(key);
     if (viewKey) current.add(viewKey);
+    if (key.startsWith("inventory.") && key !== "inventory.view") {
+      current.add("inventory.view");
+    }
   });
 
   return [...current];
 };
 
 const listPermissionSettings = async () => {
-  const admins = await db("users")
-    .where({ role: "admin", is_deleted: false })
-    .select("id", "first_name", "last_name", "username", "phone", "user_image", "role", "updated_at")
+  const users = await db("users")
+    .whereIn("role", MANAGED_ROLES)
+    .where({ is_deleted: false })
+    .select(
+      "id",
+      "first_name",
+      "last_name",
+      "username",
+      "phone",
+      "user_image",
+      "role",
+      "updated_at",
+    )
     .orderBy("first_name", "asc");
 
-  const userIds = admins.map((admin) => admin.id);
+  const userIds = users.map((user) => user.id);
   const rows = userIds.length
     ? await db("user_permissions")
         .whereIn("user_id", userIds)
@@ -58,9 +78,9 @@ const listPermissionSettings = async () => {
     permissions: PERMISSIONS,
     groups: groupPermissions(PERMISSIONS),
     presets: PERMISSION_PRESETS,
-    admins: admins.map((admin) => ({
-      ...admin,
-      permissions: normalizePermissions(byUser[admin.id] || []),
+    users: users.map((user) => ({
+      ...user,
+      permissions: normalizePermissions(byUser[user.id] || []),
     })),
   };
 };
@@ -69,11 +89,12 @@ const listPermissionPresets = () => ({ presets: PERMISSION_PRESETS });
 
 const getUserPermissionSettings = async (id) => {
   const user = await db("users")
-    .where({ id, role: "admin", is_deleted: false })
+    .where({ id, is_deleted: false })
+    .whereIn("role", MANAGED_ROLES)
     .select("id", "first_name", "last_name", "username", "phone", "user_image", "role")
     .first();
 
-  if (!user) throw new NotFoundError("Admin topilmadi");
+  if (!user) throw new NotFoundError("Foydalanuvchi topilmadi");
 
   const rows = await db("user_permissions")
     .where({ user_id: id, allowed: true })
@@ -91,15 +112,18 @@ const updateUserPermissions = async (id, permissions, actor) => {
   }
 
   const target = await db("users")
-    .where({ id, role: "admin", is_deleted: false })
+    .where({ id, is_deleted: false })
+    .whereIn("role", MANAGED_ROLES)
     .select("id", "company_id", "first_name", "last_name", "username", "role")
     .first();
 
-  if (!target) throw new NotFoundError("Admin topilmadi");
+  if (!target) throw new NotFoundError("Foydalanuvchi topilmadi");
 
   const allowedKeys = new Set(PERMISSIONS.map((item) => item.key));
-  const cleanPermissions = normalizePermissions([...new Set(permissions)]).filter((key) =>
-    allowedKeys.has(key),
+  const roleAllowedKeys =
+    target.role === "worker" ? new Set(INVENTORY_WORKER_PERMISSIONS) : allowedKeys;
+  const cleanPermissions = normalizePermissions([...new Set(permissions)]).filter(
+    (key) => allowedKeys.has(key) && roleAllowedKeys.has(key),
   );
 
   await db.transaction(async (trx) => {
@@ -118,7 +142,7 @@ const updateUserPermissions = async (id, permissions, actor) => {
   });
 
   return {
-    message: "Admin ruxsatlari saqlandi",
+    message: "Foydalanuvchi ruxsatlari saqlandi",
     user: target,
     permissions: cleanPermissions,
   };
@@ -129,7 +153,7 @@ const applyPermissionPreset = async (id, presetKey, actor) => {
   if (!preset) throw new BadRequestError("Ruxsat shabloni topilmadi");
 
   const result = await updateUserPermissions(id, preset.permissions, actor);
-  return { ...result, message: "Admin ruxsat shabloni saqlandi", preset };
+  return { ...result, message: "Ruxsat shabloni saqlandi", preset };
 };
 
 module.exports = {

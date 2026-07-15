@@ -62,10 +62,12 @@ exports.companyDelete = {
 exports.paymentCreate = {
   body: Joi.object({
     company_id: id.required(),
-    amount: Joi.number().positive().required(),
     paid_at: Joi.date().iso(),
-    period_from: Joi.date().iso().allow(null),
-    period_to: Joi.date().iso().allow(null),
-    note: Joi.string().allow(null, ""),
+    period_from: Joi.date().iso().required(),
+    period_to: Joi.date().iso().required(),
+    discount_type: Joi.string().valid("none", "fixed", "percent").default("none"),
+    discount_value: Joi.number().min(0).default(0),
+    discount_reason: Joi.string().trim().max(500).allow(null, ""),
+    note: Joi.string().trim().max(1000).allow(null, ""),
   }),
 };

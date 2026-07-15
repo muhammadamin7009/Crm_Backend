@@ -26,6 +26,7 @@ const formatSaleQuery = () =>
     )
     .leftJoin("users as cl", "cl.id", "cs.client_id")
     .leftJoin("products as p", "p.id", "cs.product_id")
+    .leftJoin("warehouses as w", "w.id", "cs.warehouse_id")
     .leftJoin("users as c", "c.id", "cs.created_by")
     .where("cs.is_deleted", false);
 
@@ -40,6 +41,11 @@ const selectSaleFields = (query) =>
     "p.name as product_name",
     "p.sku as product_sku",
     "p.model as product_model",
+    "p.unit as product_unit",
+    "cs.warehouse_id",
+    "w.name as warehouse_name",
+    "w.code as warehouse_code",
+    "cs.inventory_tracked_at",
     "cs.quantity",
     "cs.unit_price",
     "cs.total_amount",

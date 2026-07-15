@@ -42,7 +42,7 @@ const deviceName = (userAgent = "") => {
 
 const getUserPermissions = async (user) => {
   if (user.role === "super_admin") return ["*"];
-  if (user.role !== "admin") return [];
+  if (!["admin", "worker"].includes(user.role)) return [];
 
   const rows = await db("user_permissions")
     .where({ user_id: user.id, allowed: true })

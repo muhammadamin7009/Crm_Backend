@@ -19,6 +19,7 @@ const showProduct = async ({ id }, actor) => {
       "p.description",
       "p.purchase_price",
       "p.sale_price",
+      "p.completion_department_id",
       "p.is_active",
       "p.created_by",
       "p.created_at",
@@ -33,6 +34,8 @@ const showProduct = async ({ id }, actor) => {
     .select("id", "image_url", "is_primary", "created_at")
     .orderBy("is_primary", "desc")
     .orderBy("id", "asc");
+
+  product.has_recipe = Boolean(await db("product_materials").where({ product_id: id }).first("id"));
 
   const canSeeDepartmentPrices = MANAGER_ROLES.includes(actor?.role);
 

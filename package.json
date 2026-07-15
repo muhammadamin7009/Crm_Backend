@@ -9,6 +9,7 @@
     "backup": "node scripts/backup-database.js",
     "demo": "node scripts/seed-demo.js",
     "smoke:inventory": "node scripts/inventory-smoke.js",
+    "smoke:production-recipe": "node scripts/production-recipe-smoke.js",
     "format": "prettier --write ."
   },
   "keywords": [],

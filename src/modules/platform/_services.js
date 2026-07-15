@@ -53,7 +53,7 @@ const listCompanies = async () => {
     companies.map((company) =>
       db.root.transaction(async (trx) => {
         await setTenantContext(trx, company.id);
-        const counts = await roleCounts(trx);
+        const counts = await roleCounts(trx, company.id);
         const ownerRow = await trx("users")
           .where({ company_id: company.id, role: "super_admin", is_deleted: false })
           .count({ count: "id" })
@@ -106,14 +106,26 @@ const createCompany = async (body) => {
         is_deleted: false,
       })
       .returning(["id", "first_name", "last_name", "username", "role"]);
-    await trx("warehouses").insert({
-      company_id: company.id,
-      name: "Asosiy ombor",
-      code: "MAIN",
-      is_default: true,
-      is_active: true,
-      created_by: admin.id,
-    });
+    await trx("warehouses").insert([
+      {
+        company_id: company.id,
+        name: "Tayyor mahsulot ombori",
+        code: "MAIN",
+        warehouse_type: "product",
+        is_default: true,
+        is_active: true,
+        created_by: admin.id,
+      },
+      {
+        company_id: company.id,
+        name: "Homashyo ombori",
+        code: "RAW",
+        warehouse_type: "raw_material",
+        is_default: false,
+        is_active: true,
+        created_by: admin.id,
+      },
+    ]);
     await trx("expense_categories").insert({
       company_id: company.id,
       name: "Mayda xarajatlar",
@@ -144,7 +156,7 @@ const updateCompany = async (body, id) =>
         .first();
       if (!plan) throw new NotFoundError("Obuna rejasi topilmadi");
       await setTenantContext(trx, id);
-      assertPlanCanFitCounts(plan, await roleCounts(trx));
+      assertPlanCanFitCounts(plan, await roleCounts(trx, id));
       subscriptionPatch.plan_id = plan.id;
     }
     if (Object.keys(subscriptionPatch).length)
@@ -311,16 +323,48 @@ const deleteCompany = async (id, confirmSlug) =>
     return { message: `${company.name} korxonasi butunlay o'chirildi` };
   });
 
-const createPayment = async (body) => {
-  const company = await db.root("companies").where({ id: body.company_id }).first();
-  if (!company) throw new NotFoundError("Korxona topilmadi");
+const createPayment = async (body, platformAdmin) => {
+  const company = await db
+    .root("companies as c")
+    .join("company_subscriptions as cs", "cs.company_id", "c.id")
+    .join("subscription_plans as sp", "sp.id", "cs.plan_id")
+    .where("c.id", body.company_id)
+    .first(
+      "c.id",
+      "sp.code as plan_code",
+      "sp.name as plan_name",
+      "sp.monthly_price",
+    );
+  if (!company) throw new NotFoundError("Korxona yoki uning obuna rejasi topilmadi");
+  const calculation = require("./subscription-billing").calculateSubscriptionPayment({
+    monthlyPrice: company.monthly_price,
+    periodFrom: body.period_from,
+    periodTo: body.period_to,
+    discountType: body.discount_type,
+    discountValue: body.discount_value,
+    discountReason: body.discount_reason,
+  });
   return db.root.transaction(async (trx) => {
     const [payment] = await trx("subscription_payments")
-      .insert({ ...body, paid_at: body.paid_at || trx.fn.now(), note: body.note || null })
+      .insert({
+        company_id: body.company_id,
+        plan_code: company.plan_code,
+        plan_name: company.plan_name,
+        plan_monthly_price: company.monthly_price,
+        period_from: body.period_from,
+        period_to: body.period_to,
+        paid_at: body.paid_at || trx.fn.now(),
+        note: body.note || null,
+        discount_reason: calculation.discount_amount > 0 ? body.discount_reason.trim() : null,
+        platform_admin_id: platformAdmin?.id || null,
+        ...calculation,
+      })
       .returning("*");
-    const patch = { status: "active", updated_at: trx.fn.now() };
-    if (body.period_to) patch.ends_at = body.period_to;
-    await trx("company_subscriptions").where({ company_id: body.company_id }).update(patch);
+    await trx("company_subscriptions").where({ company_id: body.company_id }).update({
+      status: "active",
+      ends_at: body.period_to,
+      updated_at: trx.fn.now(),
+    });
     await trx("companies")
       .where({ id: body.company_id })
       .update({ status: "active", updated_at: trx.fn.now() });
@@ -328,13 +372,16 @@ const createPayment = async (body) => {
   });
 };
 
-const listPayments = async (companyId) => ({
-  subscription_payments: await db
+const listPayments = async (companyId) => {
+  const query = db
     .root("subscription_payments")
-    .where(companyId ? { company_id: Number(companyId) } : {})
+    .leftJoin("platform_admins", "platform_admins.id", "subscription_payments.platform_admin_id")
+    .select("subscription_payments.*", "platform_admins.username as platform_admin_username")
     .orderBy("paid_at", "desc")
-    .limit(200),
-});
+    .limit(200);
+  if (companyId) query.where("subscription_payments.company_id", Number(companyId));
+  return { subscription_payments: await query };
+};
 
 const listPlans = async () => ({
   subscription_plans: await db

@@ -67,7 +67,7 @@ exports.deleteCompany = async (req, res, next) => {
 exports.createPayment = async (req, res, next) => {
   try {
     validate({ body: req.body }, schemas.paymentCreate);
-    res.status(201).json(await s.createPayment(req.body));
+    res.status(201).json(await s.createPayment(req.body, req.platformAdmin));
   } catch (e) {
     next(e);
   }

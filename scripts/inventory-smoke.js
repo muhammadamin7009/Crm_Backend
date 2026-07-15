@@ -109,7 +109,11 @@ const run = async () => {
         }
 
         const defaultWarehouse = await trx("warehouses")
-          .where({ is_default: true, is_active: true })
+          .where({ is_active: true })
+          .whereIn("warehouse_type", ["raw_material", "mixed"])
+          .orderByRaw("CASE WHEN warehouse_type = 'raw_material' THEN 0 ELSE 1 END")
+          .orderBy("is_default", "desc")
+          .orderBy("id")
           .first("id");
         let supplier = await trx("suppliers").where({ is_deleted: false }).first("id");
         if (!supplier) {
@@ -193,7 +197,11 @@ const run = async () => {
     if (error.message !== ROLLBACK) throw error;
   }
 
-  const remaining = await db.root("warehouses").whereIn("code", createdCodes).count({ count: "id" }).first();
+  const remaining = await db
+    .root("warehouses")
+    .whereIn("code", createdCodes)
+    .count({ count: "id" })
+    .first();
   result.rolled_back = Number(remaining.count) === 0;
   result.passed = result.passed && result.rolled_back;
   console.log(JSON.stringify(result, null, 2));

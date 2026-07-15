@@ -1,17 +1,27 @@
 const db = require("../../db");
-const { ensureCategory, ensureUniqueSku, emptyToNull } = require("./helpers");
+const {
+  resolveCategory,
+  canonicalizeProductOption,
+  generateUniqueSku,
+  emptyToNull,
+} = require("./helpers");
 
 const createProduct = async (body, actor) => {
-  await Promise.all([ensureCategory(body.category_id), ensureUniqueSku(body.sku)]);
+  const categoryId = await resolveCategory(body, actor);
+  const [model, color] = await Promise.all([
+    canonicalizeProductOption("model", body.model),
+    canonicalizeProductOption("color", body.color),
+  ]);
+  const sku = await generateUniqueSku(body.name, color);
 
   const [product] = await db("products")
     .insert({
-      category_id: body.category_id || null,
+      category_id: categoryId,
       name: body.name,
-      model: emptyToNull(body.model),
-      sku: body.sku,
-      color: emptyToNull(body.color),
-      unit: body.unit || "dona",
+      model: emptyToNull(model),
+      sku,
+      color: emptyToNull(color),
+      unit: "par",
       description: emptyToNull(body.description),
       purchase_price: body.purchase_price ?? 0,
       sale_price: body.sale_price,

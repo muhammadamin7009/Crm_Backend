@@ -67,6 +67,7 @@ const listProducts = async (
         "p.description",
         "p.purchase_price",
         "p.sale_price",
+        "p.completion_department_id",
         "p.is_active",
         "p.created_by",
         "p.created_at",
@@ -78,6 +79,11 @@ const listProducts = async (
           ORDER BY is_primary DESC, id ASC
           LIMIT 1
         ) AS product_image`),
+        db.raw(`EXISTS (
+          SELECT 1
+          FROM product_materials pm
+          WHERE pm.product_id = p.id
+        ) AS has_recipe`),
       )
       .orderBy(SORT_COLUMNS[sort_by], sort_order)
       .limit(Number(limit))

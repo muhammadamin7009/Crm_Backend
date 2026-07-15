@@ -7,6 +7,7 @@ const idParams = Joi.object({
 const saleFields = {
   client_id: Joi.number().integer().positive(),
   product_id: Joi.number().integer().positive(),
+  warehouse_id: Joi.number().integer().positive(),
   quantity: Joi.number().precision(2).positive(),
   unit_price: Joi.number().precision(2).min(0),
   paid_amount: Joi.number().precision(2).min(0).default(0),
@@ -26,6 +27,7 @@ exports.createClientSaleSchema = {
 exports.createBulkClientSaleSchema = {
   body: Joi.object({
     client_id: saleFields.client_id.required(),
+    warehouse_id: saleFields.warehouse_id,
     paid_amount: saleFields.paid_amount,
     sold_at: saleFields.sold_at,
     note: saleFields.note,

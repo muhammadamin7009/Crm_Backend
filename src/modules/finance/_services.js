@@ -1,6 +1,7 @@
 const db = require("../../db");
 const { BadRequestError, NotFoundError } = require("../../shared/errors");
 const { getAdvanceBalance } = require("../worker-advances/helpers");
+const inventory = require("../inventory/_services");
 
 const range = (query, column, { date_from, date_to }) => {
   if (date_from) query.andWhere(column, ">=", date_from);
@@ -389,30 +390,40 @@ const listReturns = async (filters) => {
   };
 };
 const createReturn = async (body, actor) => {
-  const sale = await db("client_sales")
-    .where({ id: body.client_sale_id, is_deleted: false })
-    .first();
-  if (!sale) throw new NotFoundError("Savdo topilmadi");
-  const returned = await db("client_returns")
-    .where({ client_sale_id: sale.id, is_deleted: false })
-    .sum({ quantity: "quantity" })
-    .first();
-  if (n(returned.quantity) + n(body.quantity) > n(sale.quantity))
-    throw new BadRequestError(
-      `Qaytarish miqdori qolgan ${n(sale.quantity) - n(returned.quantity)} dan oshmasin`,
-    );
-  const [row] = await db("client_returns")
-    .insert({
-      client_sale_id: sale.id,
-      client_id: sale.client_id,
-      product_id: sale.product_id,
-      quantity: body.quantity,
-      amount: n(body.quantity) * n(sale.unit_price),
-      returned_at: body.returned_at || db.fn.now(),
-      reason: clean(body.reason),
-      created_by: actor.id,
-    })
-    .returning("*");
+  const row = await db.transaction((trx) =>
+    db.runWithDatabase(trx, async () => {
+      const sale = await trx("client_sales")
+        .where({ id: body.client_sale_id, is_deleted: false })
+        .forUpdate()
+        .first();
+      if (!sale) throw new NotFoundError("Savdo topilmadi");
+      const returned = await trx("client_returns")
+        .where({ client_sale_id: sale.id, is_deleted: false })
+        .sum({ quantity: "quantity" })
+        .first();
+      if (n(returned.quantity) + n(body.quantity) > n(sale.quantity))
+        throw new BadRequestError(
+          `Qaytarish miqdori qolgan ${n(sale.quantity) - n(returned.quantity)} dan oshmasin`,
+        );
+      const [created] = await trx("client_returns")
+        .insert({
+          client_sale_id: sale.id,
+          client_id: sale.client_id,
+          product_id: sale.product_id,
+          quantity: body.quantity,
+          amount: n(body.quantity) * n(sale.unit_price),
+          returned_at: body.returned_at || trx.fn.now(),
+          reason: clean(body.reason),
+          created_by: actor.id,
+        })
+        .returning("*");
+      await inventory.syncClientSaleStock(trx, sale.id, actor, {
+        occurredAt: created.returned_at,
+        note: `Mijoz savdosi #${sale.id} bo'yicha mahsulot qaytdi`,
+      });
+      return created;
+    }),
+  );
   return { client_return: row };
 };
 

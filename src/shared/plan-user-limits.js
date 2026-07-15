@@ -29,12 +29,12 @@ const groupForRole = (role) => {
   return null;
 };
 
-const countRoleGroup = async (group) => {
-  const row = await db("users")
+const countRoleGroup = async (group, companyId) => {
+  const query = db("users")
     .where({ is_deleted: false })
-    .whereIn("role", group.roles)
-    .count({ count: "id" })
-    .first();
+    .whereIn("role", group.roles);
+  if (companyId) query.andWhere("company_id", Number(companyId));
+  const row = await query.count({ count: "id" }).first();
   return Number(row?.count || 0);
 };
 
@@ -49,7 +49,7 @@ const assertRoleLimit = async (role, company, { lock = true } = {}) => {
     await db.raw("SELECT pg_advisory_xact_lock(?, ?)", [Number(company.id), group.lockKey]);
   }
 
-  const count = await countRoleGroup(group);
+  const count = await countRoleGroup(group, company?.id);
   if (count >= limit) {
     throw new BadRequestError(
       `${company.plan_name || "Joriy"} tarifida maksimum ${limit} ta ${group.label} mumkin`,
@@ -57,10 +57,12 @@ const assertRoleLimit = async (role, company, { lock = true } = {}) => {
   }
 };
 
-const roleCounts = async (database = db) => {
-  const rows = await database("users")
+const roleCounts = async (database = db, companyId = null) => {
+  const query = database("users")
     .where({ is_deleted: false })
-    .whereIn("role", ["worker", "client", "customer", "admin"])
+    .whereIn("role", ["worker", "client", "customer", "admin"]);
+  if (companyId) query.andWhere("company_id", Number(companyId));
+  const rows = await query
     .groupBy("role")
     .select("role")
     .count({ count: "id" });

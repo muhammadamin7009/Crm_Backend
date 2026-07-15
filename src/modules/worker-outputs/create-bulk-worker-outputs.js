@@ -1,6 +1,7 @@
 const db = require("../../db");
 const { getDepartment, getPricePerUnit, getProduct, getWorker } = require("./helpers");
 const { getFormattedOutput } = require("./format-output");
+const inventory = require("../inventory/_services");
 
 const createBulkWorkerOutputs = async (body, actor) => {
   const workerId = Number(body.worker_id);
@@ -30,9 +31,12 @@ const createBulkWorkerOutputs = async (body, actor) => {
             worked_at: body.worked_at || trx.fn.now(),
             note: body.note || null,
             created_by: actor.id,
+            inventory_tracked_at: trx.fn.now(),
           })
           .returning("id");
-        createdIds.push(created.id || created);
+        const id = created.id || created;
+        await inventory.syncProductionOutput(trx, id, actor);
+        createdIds.push(id);
       }
 
       return createdIds;

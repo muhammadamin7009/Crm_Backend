@@ -1,21 +1,43 @@
 const db = require("../../db");
-const { ensureCategory, getExistingProduct, ensureUniqueSku, emptyToNull } = require("./helpers");
+const {
+  getExistingProduct,
+  resolveCategory,
+  canonicalizeProductOption,
+  generateUniqueSku,
+  emptyToNull,
+} = require("./helpers");
 
-const updateProduct = async (body, { id }) => {
+const updateProduct = async (body, { id }, actor) => {
   const existing = await getExistingProduct(id);
 
-  const checks = [];
-  if (body.category_id !== undefined) checks.push(ensureCategory(body.category_id));
-  if (body.sku && body.sku.toLowerCase() !== existing.sku.toLowerCase()) {
-    checks.push(ensureUniqueSku(body.sku, id));
-  }
-  await Promise.all(checks);
+  const { category_name: _categoryName, ...bodyWithoutCategoryName } = body;
+  const patch = { ...bodyWithoutCategoryName, updated_at: db.fn.now() };
+  patch.unit = "par";
 
-  const patch = { ...body, updated_at: db.fn.now() };
-
-  for (const field of ["model", "color", "description"]) {
-    if (patch[field] !== undefined) patch[field] = emptyToNull(patch[field]);
+  if (body.category_id !== undefined || body.category_name !== undefined) {
+    patch.category_id = await resolveCategory(body, actor);
   }
+
+  for (const field of ["model", "color"]) {
+    if (patch[field] !== undefined) {
+      patch[field] = await canonicalizeProductOption(field, patch[field]);
+    }
+  }
+
+  if (patch.description !== undefined) patch.description = emptyToNull(patch.description);
+
+  const nextName = patch.name ?? existing.name;
+  const nextColor = patch.color !== undefined ? patch.color : existing.color;
+  const identityChanged =
+    String(nextName).trim().toLowerCase() !== String(existing.name).trim().toLowerCase() ||
+    String(nextColor || "")
+      .trim()
+      .toLowerCase() !==
+      String(existing.color || "")
+        .trim()
+        .toLowerCase();
+
+  if (identityChanged) patch.sku = await generateUniqueSku(nextName, nextColor, id);
 
   const [product] = await db("products")
     .where({ id })

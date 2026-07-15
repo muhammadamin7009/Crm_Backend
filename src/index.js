@@ -25,6 +25,8 @@ const cors = require("cors");
 
 const app = express();
 
+// Nginx birinchi va yagona reverse proxy. Rate-limit haqiqiy mijoz IP manzilini ishlatadi.
+app.set("trust proxy", 1);
 app.use(express.json());
 app.use(cors());
 app.use("/uploads", express.static("uploads"));

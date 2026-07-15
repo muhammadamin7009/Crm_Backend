@@ -59,8 +59,16 @@ const isLoggedIn = async (req, _res, next) => {
     }
 
     next();
-  } catch (_error) {
-    next(new UnauthorizedError("Login qilmagansiz yoki sessiya tugagan"));
+  } catch (error) {
+    const isTokenError = ["JsonWebTokenError", "TokenExpiredError", "NotBeforeError"].includes(
+      error?.name,
+    );
+
+    if (error instanceof UnauthorizedError || isTokenError) {
+      return next(new UnauthorizedError("Login qilmagansiz yoki sessiya tugagan"));
+    }
+
+    next(error);
   }
 };
 

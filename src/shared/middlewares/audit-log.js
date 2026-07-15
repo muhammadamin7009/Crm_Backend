@@ -43,18 +43,24 @@ module.exports = (req, res, next) => {
       query: sanitize(req.query),
     };
 
-    db.root("audit_logs")
-      .insert({
-        company_id: req.company.id,
-        actor_user_id: req.user.id,
-        action: req.method,
-        entity_type: getEntityType(req),
-        entity_id: getEntityId(req),
-        path: req.originalUrl.split("?")[0],
-        status_code: res.statusCode,
-        details,
-        ip,
-        user_agent,
+    db.root
+      .transaction(async (trx) => {
+        await trx.raw("SET LOCAL ROLE crm_tenant_user");
+        await trx.raw("SELECT set_config('app.current_company_id', ?, true)", [
+          String(req.company.id),
+        ]);
+        await trx("audit_logs").insert({
+          company_id: req.company.id,
+          actor_user_id: req.user.id,
+          action: req.method,
+          entity_type: getEntityType(req),
+          entity_id: getEntityId(req),
+          path: req.originalUrl.split("?")[0],
+          status_code: res.statusCode,
+          details,
+          ip,
+          user_agent,
+        });
       })
       .catch((error) => console.error("Audit log yozilmadi:", error.message));
   });

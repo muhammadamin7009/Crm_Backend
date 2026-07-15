@@ -2,6 +2,7 @@
 const { isLoggedIn, hasRole, hasPermission } = require("../../shared/auth");
 const { BadRequestError } = require("../../shared/errors");
 const enforceUserLimit = require("../../shared/middlewares/enforce-user-limit");
+const rateLimit = require("../../shared/middlewares/rate-limit");
 const {
   getUsers,
   getUser,
@@ -24,6 +25,22 @@ const {
 
 const router = require("express").Router();
 
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: "Kirish uchun juda ko'p urinish qilindi. 15 daqiqadan keyin qayta urinib ko'ring",
+});
+const verifyLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 30,
+  message: "Tasdiqlash uchun juda ko'p urinish qilindi. Birozdan keyin qayta urinib ko'ring",
+});
+const registrationLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  message: "Bu manzildan juda ko'p ro'yxatdan o'tish so'rovi yuborildi",
+});
+
 const upload = multer({
   dest: "uploads/",
   limits: {
@@ -40,8 +57,8 @@ const upload = multer({
   },
 });
 
-router.post("/users/login", loginUser);
-router.post("/users/login/verify", verifyLogin);
+router.post("/users/login", loginLimiter, loginUser);
+router.post("/users/login/verify", verifyLimiter, verifyLogin);
 router.get("/users/me/sessions", isLoggedIn, getSessions);
 router.delete("/users/me/sessions/others", isLoggedIn, removeOtherSessions);
 router.delete("/users/me/sessions/:id", isLoggedIn, removeSession);
@@ -61,7 +78,7 @@ router.post(
   [isLoggedIn, hasRole("super_admin", "admin"), hasPermission("users.manage"), enforceUserLimit],
   postUserByStaff,
 );
-router.post("/users", enforceUserLimit, postUser);
+router.post("/users", registrationLimiter, enforceUserLimit, postUser);
 router.get("/users", isLoggedIn, hasRole("super_admin", "admin", "worker"), hasPermission("users.view", "client_sales.view", "production.view", "payroll.view"), getUsers);
 router.get("/users/me", isLoggedIn, getMe);
 router.get("/users/:id", isLoggedIn, hasRole("super_admin", "admin"), hasPermission("users.view"), getUser);

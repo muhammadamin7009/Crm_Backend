@@ -10,9 +10,6 @@ const RULES = [
     prefixes: [
       "/payroll-periods",
       "/payroll-lines",
-      "/expense-categories",
-      "/expenses",
-      "/financial-accounts",
       "/cash-transactions",
       "/client-returns",
       "/reports",

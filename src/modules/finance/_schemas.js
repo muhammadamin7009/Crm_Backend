@@ -41,7 +41,7 @@ exports.categoryCreate = {
 };
 exports.expenseCreate = {
   body: Joi.object({
-    category_id: id.required(),
+    category_id: id.allow(null, ""),
     account_id: id.allow(null, ""),
     title: Joi.string().trim().max(160).required(),
     amount: Joi.number().positive().required(),

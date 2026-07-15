@@ -114,6 +114,11 @@ const createCompany = async (body) => {
       is_active: true,
       created_by: admin.id,
     });
+    await trx("expense_categories").insert({
+      company_id: company.id,
+      name: "Mayda xarajatlar",
+      description: "Korxonaning kundalik mayda va xo'jalik xarajatlari",
+    });
     return { company, super_admin: admin };
   });
 };

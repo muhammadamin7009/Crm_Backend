@@ -241,13 +241,19 @@ const listExpenses = async (filters) => {
     db("expenses as e")
       .join("expense_categories as ec", "ec.id", "e.category_id")
       .leftJoin("financial_accounts as fa", "fa.id", "e.account_id")
+      .leftJoin("users as creator", "creator.id", "e.created_by")
       .where("e.is_deleted", false),
     "e.spent_at",
     filters,
   );
   const rows = await query
     .clone()
-    .select("e.*", "ec.name as category_name", "fa.name as account_name")
+    .select(
+      "e.*",
+      "ec.name as category_name",
+      "fa.name as account_name",
+      db.raw("concat_ws(' ', creator.first_name, creator.last_name) as created_by_name"),
+    )
     .orderBy("e.spent_at", "desc")
     .limit(n(filters.limit || 50))
     .offset(n(filters.offset));
@@ -255,15 +261,47 @@ const listExpenses = async (filters) => {
   return { expenses: rows, total_amount: n(total.amount) };
 };
 const createExpense = async (body, actor) => {
-  await ensureActiveRecord("expense_categories", body.category_id, "Xarajat kategoriyasi");
   if (body.account_id) {
     await ensureActiveRecord("financial_accounts", body.account_id, "Moliyaviy hisob");
   }
   return db.transaction(async (trx) => {
+    let categoryId = body.category_id ? Number(body.category_id) : null;
+
+    if (categoryId) {
+      const category = await trx("expense_categories")
+        .where({ id: categoryId, is_deleted: false })
+        .first();
+      if (!category) throw new NotFoundError("Xarajat kategoriyasi topilmadi");
+    } else {
+      let defaultCategory = await trx("expense_categories")
+        .where({ name: "Mayda xarajatlar" })
+        .first();
+
+      if (defaultCategory?.is_deleted) {
+        [defaultCategory] = await trx("expense_categories")
+          .where({ id: defaultCategory.id })
+          .update({ is_deleted: false, is_active: true, updated_at: trx.fn.now() })
+          .returning("*");
+      }
+
+      if (!defaultCategory) {
+        [defaultCategory] = await trx("expense_categories")
+          .insert({
+            name: "Mayda xarajatlar",
+            description: "Korxonaning kundalik mayda va xo'jalik xarajatlari",
+          })
+          .returning("*");
+      }
+
+      categoryId = defaultCategory.id;
+    }
+
     const [expense] = await trx("expenses")
       .insert({
-        ...body,
+        category_id: categoryId,
         account_id: body.account_id || null,
+        title: body.title,
+        amount: body.amount,
         spent_at: body.spent_at || trx.fn.now(),
         note: clean(body.note),
         created_by: actor.id,

@@ -1,7 +1,15 @@
 const router = require("express").Router();
 const c = require("./_controllers");
 const isPlatformAdmin = require("../../shared/auth/is-platform-admin");
-router.post("/login", c.login);
+const rateLimit = require("../../shared/middlewares/rate-limit");
+
+const platformLoginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: "Kirish uchun juda ko'p urinish qilindi. 15 daqiqadan keyin qayta urinib ko'ring",
+});
+
+router.post("/login", platformLoginLimiter, c.login);
 router.get("/plans", isPlatformAdmin, c.listPlans);
 router.get("/companies", isPlatformAdmin, c.listCompanies);
 router.post("/companies", isPlatformAdmin, c.createCompany);

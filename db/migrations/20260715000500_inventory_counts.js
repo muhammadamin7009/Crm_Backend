@@ -1,5 +1,8 @@
 const TENANT_SETTING = "NULLIF(current_setting('app.current_company_id', true), '')::integer";
 
+const setTenant = (knex, companyId) =>
+  knex.raw("SELECT set_config('app.current_company_id', ?, true)", [String(companyId)]);
+
 const enableTenantIsolation = async (knex, tableName) => {
   await knex.raw(`ALTER TABLE ?? ENABLE ROW LEVEL SECURITY`, [tableName]);
   await knex.raw(`ALTER TABLE ?? FORCE ROW LEVEL SECURITY`, [tableName]);
@@ -22,6 +25,8 @@ exports.up = async function (knex) {
 
   const companies = await knex("companies").select("id");
   for (const company of companies) {
+    await setTenant(knex, company.id);
+
     let productWarehouse = await knex("warehouses")
       .where({ company_id: company.id, code: "MAIN" })
       .first();
@@ -117,6 +122,8 @@ exports.up = async function (knex) {
       })
       .update({ warehouse_id: rawWarehouse.id });
   }
+
+  await knex.raw("SELECT set_config('app.current_company_id', '', true)");
 
   await knex.schema.createTable("inventory_counts", (table) => {
     table.bigIncrements("id");

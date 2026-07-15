@@ -1,3 +1,6 @@
+const setTenant = (knex, companyId) =>
+  knex.raw("SELECT set_config('app.current_company_id', ?, true)", [String(companyId)]);
+
 const mergeStandardWarehouses = async (knex, companyId, definition) => {
   const candidates = await knex("warehouses")
     .where({ company_id: companyId, is_active: true })
@@ -94,6 +97,8 @@ const mergeStandardWarehouses = async (knex, companyId, definition) => {
 exports.up = async function (knex) {
   const companies = await knex("companies").select("id");
   for (const company of companies) {
+    await setTenant(knex, company.id);
+
     await mergeStandardWarehouses(knex, company.id, {
       type: "product",
       canonicalName: "Tayyor mahsulot ombori",
@@ -105,6 +110,8 @@ exports.up = async function (knex) {
       names: ["homashyo", "homashyo ombori"],
     });
   }
+
+  await knex.raw("SELECT set_config('app.current_company_id', '', true)");
 };
 
 exports.down = async function () {

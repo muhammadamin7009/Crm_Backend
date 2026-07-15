@@ -1,5 +1,8 @@
 const TENANT_SETTING = "NULLIF(current_setting('app.current_company_id', true), '')::integer";
 
+const setTenant = (knex, companyId) =>
+  knex.raw("SELECT set_config('app.current_company_id', ?, true)", [String(companyId)]);
+
 exports.up = async function (knex) {
   await knex.schema.alterTable("products", (table) => {
     table
@@ -14,7 +17,13 @@ exports.up = async function (knex) {
     table.timestamp("inventory_tracked_at", { useTz: true }).nullable();
   });
 
-  await knex("products").where({ unit: "dona" }).update({ unit: "par" });
+  const companies = await knex("companies").select("id");
+  for (const company of companies) {
+    await setTenant(knex, company.id);
+    await knex("products").where({ company_id: company.id, unit: "dona" }).update({ unit: "par" });
+  }
+  await knex.raw("SELECT set_config('app.current_company_id', '', true)");
+
   await knex.schema.alterTable("products", (table) => {
     table.string("unit", 20).notNullable().defaultTo("par").alter();
   });

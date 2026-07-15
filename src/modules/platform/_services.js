@@ -143,7 +143,17 @@ const getCompanyManagement = async (id) => {
     await setTenantContext(trx, id);
     const superAdmin = await trx("users")
       .where({ company_id: id, role: "super_admin", is_deleted: false })
-      .select("id", "first_name", "last_name", "username", "phone", "user_image", "updated_at")
+      .select(
+        "id",
+        "first_name",
+        "last_name",
+        "username",
+        "phone",
+        "user_image",
+        "totp_enabled",
+        "totp_confirmed_at",
+        "updated_at",
+      )
       .first();
     if (!superAdmin) throw new NotFoundError("Korxona super administratori topilmadi");
 
@@ -201,6 +211,31 @@ const updateCompanyManagement = async (body, id) =>
     return { message: "Korxona va super administrator ma'lumotlari yangilandi" };
   });
 
+const resetCompanyAuthenticator = async (id) =>
+  db.root.transaction(async (trx) => {
+    const company = await trx("companies").where({ id }).first("id");
+    if (!company) throw new NotFoundError("Korxona topilmadi");
+
+    await setTenantContext(trx, id);
+    const superAdmin = await trx("users")
+      .where({ company_id: id, role: "super_admin", is_deleted: false })
+      .first("id");
+    if (!superAdmin) throw new NotFoundError("Korxona super administratori topilmadi");
+
+    await trx("auth_challenges").where({ user_id: superAdmin.id }).delete();
+    await trx("user_recovery_codes").where({ user_id: superAdmin.id }).delete();
+    await trx("user_sessions").where({ user_id: superAdmin.id }).delete();
+    await trx("users").where({ id: superAdmin.id, company_id: id }).update({
+      totp_secret_encrypted: null,
+      totp_enabled: false,
+      totp_last_counter: null,
+      totp_confirmed_at: null,
+      updated_at: trx.fn.now(),
+    });
+
+    return { message: "Authenticator sozlamasi tiklandi. Keyingi kirishda yangi QR-kod chiqadi" };
+  });
+
 const deleteCompany = async (id, confirmSlug) =>
   db.root.transaction(async (trx) => {
     const company = await trx("companies").where({ id }).first();
@@ -213,6 +248,7 @@ const deleteCompany = async (id, confirmSlug) =>
     const tables = [
       "audit_logs",
       "auth_challenges",
+      "user_recovery_codes",
       "user_sessions",
       "user_permissions",
       "inventory_movements",
@@ -296,6 +332,7 @@ module.exports = {
   updateCompany,
   getCompanyManagement,
   updateCompanyManagement,
+  resetCompanyAuthenticator,
   deleteCompany,
   createPayment,
   listPayments,

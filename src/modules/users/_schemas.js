@@ -2,10 +2,12 @@ const Joi = require("joi");
 
 const ROLE_ENUM = ["super_admin", "admin", "client", "customer", "worker"];
 
-const PHONE_MESSAGE =
-  "Telefon raqam xalqaro formatda bo'lishi kerak. Masalan: +998965001001";
+const PHONE_MESSAGE = "Telefon raqam xalqaro formatda bo'lishi kerak. Masalan: +998965001001";
 
-const normalizePhone = (value) => String(value || "").trim().replace(/[()\s-]/g, "");
+const normalizePhone = (value) =>
+  String(value || "")
+    .trim()
+    .replace(/[()\s-]/g, "");
 
 const phoneSchema = Joi.string()
   .trim()
@@ -21,9 +23,7 @@ const phoneSchema = Joi.string()
     }
 
     if (phone.startsWith("+998") && !/^\+998\d{9}$/.test(phone)) {
-      return helpers.message(
-        "O'zbekiston raqami +998 dan keyin aynan 9 ta raqam bo'lishi kerak",
-      );
+      return helpers.message("O'zbekiston raqami +998 dan keyin aynan 9 ta raqam bo'lishi kerak");
     }
 
     if (!/^\+[1-9]\d{7,14}$/.test(phone)) {
@@ -50,7 +50,9 @@ exports.loginUserSchema = {
 exports.verifyLoginSchema = {
   body: Joi.object({
     challenge_id: Joi.string().guid({ version: "uuidv4" }).required(),
-    code: Joi.string().pattern(/^\d{6}$/).required(),
+    code: Joi.string()
+      .pattern(/^(?:\d{6}|[A-Z2-9]{4}-[A-Z2-9]{4})$/i)
+      .required(),
   }),
 };
 

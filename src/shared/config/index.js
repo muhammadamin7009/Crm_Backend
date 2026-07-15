@@ -13,6 +13,9 @@ module.exports = {
   jwt: {
     secret: process.env.JWT_SECRET,
   },
+  mfa: {
+    encryptionKey: process.env.MFA_ENCRYPTION_KEY || "",
+  },
   sms: {
     provider: process.env.SMS_PROVIDER || "console",
     testPhone: process.env.SMS_TEST_PHONE || "",

@@ -8,6 +8,11 @@ router.post("/companies", isPlatformAdmin, c.createCompany);
 router.patch("/companies/:id", isPlatformAdmin, c.updateCompany);
 router.get("/companies/:id/management", isPlatformAdmin, c.getCompanyManagement);
 router.patch("/companies/:id/management", isPlatformAdmin, c.updateCompanyManagement);
+router.delete(
+  "/companies/:id/management/authenticator",
+  isPlatformAdmin,
+  c.resetCompanyAuthenticator,
+);
 router.delete("/companies/:id", isPlatformAdmin, c.deleteCompany);
 router.get("/payments", isPlatformAdmin, c.listPayments);
 router.post("/payments", isPlatformAdmin, c.createPayment);

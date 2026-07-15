@@ -48,6 +48,14 @@ exports.updateCompanyManagement = async (req, res, next) => {
     next(e);
   }
 };
+exports.resetCompanyAuthenticator = async (req, res, next) => {
+  try {
+    validate({ params: req.params }, schemas.companyManagementGet);
+    res.json(await s.resetCompanyAuthenticator(Number(req.params.id)));
+  } catch (e) {
+    next(e);
+  }
+};
 exports.deleteCompany = async (req, res, next) => {
   try {
     validate({ body: req.body, params: req.params }, schemas.companyDelete);

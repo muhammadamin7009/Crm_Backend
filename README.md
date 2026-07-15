@@ -1,8 +1,29 @@
 # Crm_Backend
 
-## SMS va MFA
+## Google Authenticator MFA
 
-Developmentda barcha super admin OTP kodlarini bitta test raqamga yo'naltirish mumkin:
+Super administrator kirishida Google Authenticator TOTP ishlatiladi. Secretlar bazada
+ochiq saqlanmaydi; ularni shifrlash uchun production serverda o'zgarmaydigan 32 baytli
+base64 kalit bo'lishi shart:
+
+```env
+MFA_ENCRYPTION_KEY=
+```
+
+Kalitni yaratish (Linux serverda):
+
+```bash
+openssl rand -base64 32
+```
+
+Kalit yo'qolsa mavjud Authenticator ulanishlarini o'qib bo'lmaydi. Uni parol menejerida
+xavfsiz nusxalang. Birinchi kirishda QR-kod va bir martalik tiklash kodlari beriladi.
+Platform boshqaruvchisi yo'qolgan telefon holatida korxona boshqaruv oynasidan
+Authenticator'ni qayta sozlashi mumkin.
+
+## SMS ogohlantirishlari
+
+Developmentda SMSlarni bitta test raqamga yo'naltirish mumkin:
 
 ```env
 NODE_ENV=development
@@ -22,8 +43,8 @@ ESKIZ_PASSWORD=
 ESKIZ_FROM=4546
 ```
 
-`SMS_TEST_PHONE` faqat `NODE_ENV` production bo'lmaganda ishlaydi. Productionda OTP super adminning
-bazadagi haqiqiy telefon raqamiga yuboriladi.
+`SMS_TEST_PHONE` faqat `NODE_ENV` production bo'lmaganda ishlaydi. SMS hozir kirish kodi
+uchun emas, yangi qurilmadan kirish kabi qo'shimcha xavfsizlik ogohlantirishlari uchun ishlatiladi.
 
 ## Demo ma'lumotlari
 

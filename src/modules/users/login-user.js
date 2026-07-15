@@ -4,9 +4,17 @@ const { sendSms } = require("../../shared/sms");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const QRCode = require("qrcode");
 const config = require("../../shared/config");
-
-const maskPhone = (phone = "") => phone.replace(/^(\+?\d{3})\d+(\d{2})$/, "$1******$2");
+const {
+  buildOtpAuthUri,
+  decryptSecret,
+  encryptSecret,
+  generateRecoveryCodes,
+  generateSecret,
+  normalizeRecoveryCode,
+  verifyTotp,
+} = require("../../shared/mfa/totp");
 
 const deviceName = (userAgent = "") => {
   const browser = /Edg/i.test(userAgent)
@@ -96,10 +104,14 @@ const issueSession = async (existing, company, meta) => {
   );
 
   if (!knownDevice && existing.role === "super_admin" && existing.phone) {
-    await sendSms({
-      phone: existing.phone,
-      message: `ZERR CRM: profilingizga yangi qurilmadan kirildi: ${deviceName(meta.user_agent)}. Agar bu siz bo'lmasangiz, boshqa qurilmalardan chiqishni bosing.`,
-    });
+    try {
+      await sendSms({
+        phone: existing.phone,
+        message: `AL-AMIN CRM: profilingizga yangi qurilmadan kirildi: ${deviceName(meta.user_agent)}. Agar bu siz bo'lmasangiz, boshqa qurilmalardan chiqishni bosing.`,
+      });
+    } catch (error) {
+      console.error("Yangi qurilma SMS ogohlantirishi yuborilmadi:", error.message);
+    }
   }
 
   return { token, user: await publicUser(existing, company) };
@@ -118,6 +130,9 @@ const findUser = (username) =>
       "last_name",
       "phone",
       "company_id",
+      "totp_secret_encrypted",
+      "totp_enabled",
+      "totp_last_counter",
     )
     .first();
 
@@ -130,7 +145,6 @@ const login = async ({ username, password, device_id }, company, metadata = {}) 
   const meta = { ...metadata, device_id: device_id || metadata.device_id || crypto.randomUUID() };
 
   if (existing.role !== "super_admin") return issueSession(existing, company, meta);
-  if (!existing.phone) throw new BadRequestError("Super administrator telefon raqami kiritilmagan");
 
   const recent = await db("auth_challenges")
     .where({ user_id: existing.id })
@@ -141,29 +155,58 @@ const login = async ({ username, password, device_id }, company, metadata = {}) 
     throw new BadRequestError("Kod juda ko'p so'raldi. 10 daqiqadan keyin urinib ko'ring");
   }
 
-  const code = String(crypto.randomInt(100000, 1000000));
+  let secret;
+  let encryptedSecret = existing.totp_secret_encrypted;
+  const setupRequired = !existing.totp_enabled;
+
+  if (!encryptedSecret) {
+    secret = generateSecret();
+    encryptedSecret = encryptSecret(secret);
+    await db("users").where({ id: existing.id }).update({
+      totp_secret_encrypted: encryptedSecret,
+      totp_enabled: false,
+      totp_last_counter: null,
+      totp_confirmed_at: null,
+      updated_at: db.fn.now(),
+    });
+  } else {
+    secret = decryptSecret(encryptedSecret);
+  }
+
   const challengeId = crypto.randomUUID();
   await db("auth_challenges").insert({
     id: challengeId,
     company_id: existing.company_id,
     user_id: existing.id,
-    code_hash: await bcrypt.hash(code, 10),
+    code_hash: "totp",
+    method: setupRequired ? "totp_setup" : "totp",
     device_id: meta.device_id,
     user_agent: meta.user_agent || null,
     ip_address: meta.ip_address || null,
     expires_at: new Date(Date.now() + 5 * 60 * 1000),
   });
-  const sentSms = await sendSms({
-    phone: existing.phone,
-    message: `ZERR CRM tasdiqlash kodi: ${code}. Kod 5 daqiqa amal qiladi.`,
-  });
 
-  return {
+  const result = {
     mfa_required: true,
+    mfa_method: "totp",
+    setup_required: setupRequired,
     challenge_id: challengeId,
-    masked_phone: maskPhone(sentSms?.phone || existing.phone),
     expires_in: 300,
   };
+
+  if (setupRequired) {
+    const accountName = `${company.slug}:${existing.username}`;
+    const otpAuthUri = buildOtpAuthUri({ secret, accountName });
+    result.qr_code_data_url = await QRCode.toDataURL(otpAuthUri, {
+      errorCorrectionLevel: "M",
+      margin: 2,
+      width: 280,
+    });
+    result.manual_key = secret;
+    result.account_name = accountName;
+  }
+
+  return result;
 };
 
 login.verify = async ({ challenge_id, code }, company) => {
@@ -173,21 +216,92 @@ login.verify = async ({ challenge_id, code }, company) => {
   }
   if (challenge.attempts >= 5) throw new UnauthorizedError("Urinishlar soni tugadi");
 
-  const valid = await bcrypt.compare(code, challenge.code_hash);
-  if (!valid) {
-    await db("auth_challenges").where({ id: challenge.id }).increment("attempts", 1);
-    throw new UnauthorizedError("Tasdiqlash kodi noto'g'ri");
-  }
-
-  await db("auth_challenges").where({ id: challenge.id }).update({ consumed_at: db.fn.now() });
   const existing = await db("users").where({ id: challenge.user_id, is_deleted: false }).first();
   if (!existing) throw new UnauthorizedError("Foydalanuvchi topilmadi");
 
-  return issueSession(existing, company, {
+  const method = challenge.method || "sms";
+  let recoveryCodes = null;
+
+  if (method === "sms") {
+    const valid = await bcrypt.compare(code, challenge.code_hash);
+    if (!valid) {
+      await db("auth_challenges").where({ id: challenge.id }).increment("attempts", 1);
+      throw new UnauthorizedError("Tasdiqlash kodi noto'g'ri");
+    }
+  } else {
+    if (!existing.totp_secret_encrypted) {
+      throw new UnauthorizedError("Authenticator sozlamasi topilmadi");
+    }
+
+    const secret = decryptSecret(existing.totp_secret_encrypted);
+    const counter = verifyTotp(secret, code, existing.totp_last_counter);
+    let recoveryCodeRow = null;
+
+    if (counter === null && method === "totp") {
+      const normalizedCode = normalizeRecoveryCode(code);
+      if (/^[A-Z2-9]{4}-[A-Z2-9]{4}$/.test(normalizedCode)) {
+        const rows = await db("user_recovery_codes")
+          .where({ user_id: existing.id })
+          .whereNull("used_at")
+          .select("id", "code_hash");
+        for (const row of rows) {
+          if (await bcrypt.compare(normalizedCode, row.code_hash)) {
+            recoveryCodeRow = row;
+            break;
+          }
+        }
+      }
+    }
+
+    if (counter === null && !recoveryCodeRow) {
+      await db("auth_challenges").where({ id: challenge.id }).increment("attempts", 1);
+      throw new UnauthorizedError("Authenticator kodi noto'g'ri yoki allaqachon ishlatilgan");
+    }
+
+    if (recoveryCodeRow) {
+      const used = await db("user_recovery_codes")
+        .where({ id: recoveryCodeRow.id, user_id: existing.id })
+        .whereNull("used_at")
+        .update({ used_at: db.fn.now() });
+      if (!used) throw new UnauthorizedError("Tiklash kodi allaqachon ishlatilgan");
+    } else {
+      const updated = await db("users")
+        .where({ id: existing.id })
+        .where((builder) => {
+          builder.whereNull("totp_last_counter").orWhere("totp_last_counter", "<", counter);
+        })
+        .update({
+          totp_last_counter: counter,
+          ...(method === "totp_setup"
+            ? { totp_enabled: true, totp_confirmed_at: db.fn.now() }
+            : {}),
+          updated_at: db.fn.now(),
+        });
+      if (!updated) throw new UnauthorizedError("Authenticator kodi allaqachon ishlatilgan");
+    }
+
+    if (method === "totp_setup") {
+      recoveryCodes = generateRecoveryCodes();
+      const hashes = await Promise.all(
+        recoveryCodes.map(async (recoveryCode) => ({
+          company_id: existing.company_id,
+          user_id: existing.id,
+          code_hash: await bcrypt.hash(recoveryCode, 10),
+        })),
+      );
+      await db("user_recovery_codes").where({ user_id: existing.id }).delete();
+      await db("user_recovery_codes").insert(hashes);
+    }
+  }
+
+  await db("auth_challenges").where({ id: challenge.id }).update({ consumed_at: db.fn.now() });
+
+  const session = await issueSession(existing, company, {
     device_id: challenge.device_id,
     user_agent: challenge.user_agent,
     ip_address: challenge.ip_address,
   });
+  return recoveryCodes ? { ...session, recovery_codes: recoveryCodes } : session;
 };
 
 module.exports = login;

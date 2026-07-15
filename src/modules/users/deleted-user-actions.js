@@ -1,5 +1,6 @@
 const db = require("../../db");
 const { BadRequestError, NotFoundError } = require("../../shared/errors");
+const { assertRoleLimit } = require("../../shared/plan-user-limits");
 
 const getDeletedUser = async (id) => {
   const user = await db("users")
@@ -15,8 +16,9 @@ const getDeletedUser = async (id) => {
   return user;
 };
 
-const restoreUser = async ({ id }) => {
+const restoreUser = async ({ id }, company) => {
   const user = await getDeletedUser(id);
+  await assertRoleLimit(user.role, company);
   const duplicate = await db("users")
     .where({ username: user.username, is_deleted: false })
     .whereNot({ id: user.id })

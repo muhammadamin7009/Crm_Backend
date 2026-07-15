@@ -2,6 +2,7 @@ const db = require("../../db");
 const bcrypt = require("bcryptjs");
 const { NotFoundError, BadRequestError, ForbiddenError } = require("../../shared/errors");
 const { normalizeUserInput } = require("./normalize-user-input");
+const { assertRoleLimit, groupForRole } = require("../../shared/plan-user-limits");
 
 const ROLE = {
   SUPER: "super_admin",
@@ -10,7 +11,7 @@ const ROLE = {
   CUSTOMER: "customer",
 };
 
-const editUser = async (body, { id }, actor) => {
+const editUser = async (body, { id }, actor, company) => {
   // target user
   const target = await db("users")
     .where({ id })
@@ -64,6 +65,14 @@ const editUser = async (body, { id }, actor) => {
     if (patch.role === ROLE.ADMIN) {
       throw new BadRequestError("Admin boshqa userga admin role bera olmaydi");
     }
+  }
+
+  if (
+    !target.is_deleted &&
+    patch.role &&
+    groupForRole(patch.role) !== groupForRole(target.role)
+  ) {
+    await assertRoleLimit(patch.role, company);
   }
 
   // 3) username unique check (is_deleted=false)

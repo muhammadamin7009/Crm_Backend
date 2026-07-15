@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const config = require("../../shared/config");
 const { BadRequestError, NotFoundError, UnauthorizedError } = require("../../shared/errors");
+const { assertPlanCanFitCounts, roleCounts } = require("../../shared/plan-user-limits");
 
 const setTenantContext = (trx, companyId) =>
   trx.raw("SELECT set_config('app.current_company_id', ?, true)", [String(companyId)]);
@@ -35,6 +36,9 @@ const listCompanies = async () => {
       "sp.name as plan_name",
       "sp.monthly_price",
       "sp.max_users",
+      "sp.max_workers",
+      "sp.max_clients",
+      "sp.max_admins",
       "sp.storage_mb",
       db.root.raw(
         "(SELECT COALESCE(SUM(amount),0) FROM subscription_payments pay WHERE pay.company_id=c.id) AS total_paid",
@@ -49,11 +53,19 @@ const listCompanies = async () => {
     companies.map((company) =>
       db.root.transaction(async (trx) => {
         await setTenantContext(trx, company.id);
-        const row = await trx("users")
-          .where({ company_id: company.id, is_deleted: false })
+        const counts = await roleCounts(trx);
+        const ownerRow = await trx("users")
+          .where({ company_id: company.id, role: "super_admin", is_deleted: false })
           .count({ count: "id" })
           .first();
-        return { ...company, users_count: Number(row?.count || 0) };
+        return {
+          ...company,
+          workers_count: counts.workers,
+          clients_count: counts.clients,
+          admins_count: counts.admins,
+          users_count:
+            counts.workers + counts.clients + counts.admins + Number(ownerRow?.count || 0),
+        };
       }),
     ),
   );
@@ -126,6 +138,8 @@ const updateCompany = async (body, id) =>
         .where({ code: body.plan_code, is_active: true })
         .first();
       if (!plan) throw new NotFoundError("Obuna rejasi topilmadi");
+      await setTenantContext(trx, id);
+      assertPlanCanFitCounts(plan, await roleCounts(trx));
       subscriptionPatch.plan_id = plan.id;
     }
     if (Object.keys(subscriptionPatch).length)
@@ -321,7 +335,17 @@ const listPlans = async () => ({
   subscription_plans: await db
     .root("subscription_plans")
     .where({ is_active: true })
-    .select("id", "code", "name", "monthly_price", "max_users", "storage_mb", "features")
+    .select(
+      "id",
+      "code",
+      "name",
+      "monthly_price",
+      "max_workers",
+      "max_clients",
+      "max_admins",
+      "storage_mb",
+      "features",
+    )
     .orderBy("monthly_price"),
 });
 

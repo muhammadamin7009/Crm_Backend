@@ -15,6 +15,9 @@ const tenantContext = async (req, res, next) => {
         "sp.code as plan_code",
         "sp.name as plan_name",
         "sp.max_users as plan_max_users",
+        "sp.max_workers as plan_max_workers",
+        "sp.max_clients as plan_max_clients",
+        "sp.max_admins as plan_max_admins",
         "sp.storage_mb as plan_storage_mb",
         "sp.features as plan_features",
       )

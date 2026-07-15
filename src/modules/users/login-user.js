@@ -67,6 +67,9 @@ const publicUser = async (existing, company) => ({
   plan_name: company.plan_name,
   plan_features: company.plan_features || [],
   plan_max_users: company.plan_max_users,
+  plan_max_workers: company.plan_max_workers,
+  plan_max_clients: company.plan_max_clients,
+  plan_max_admins: company.plan_max_admins,
   permissions: await getUserPermissions(existing),
 });
 

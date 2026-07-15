@@ -141,7 +141,7 @@ const patchUser = async (req, res, next) => {
     httpValidator({ body: req.body, params: req.params }, patchUserSchema);
 
     const params = { ...req.params, id: Number(req.params.id) };
-    const result = await editUser(req.body, params, req.user);
+    const result = await editUser(req.body, params, req.user, req.company);
 
     res.status(200).json(result);
   } catch (error) {
@@ -222,6 +222,9 @@ const getMe = async (req, res, next) => {
       plan_code: req.company.plan_code,
       plan_name: req.company.plan_name,
       plan_features: req.company.plan_features || [],
+      plan_max_workers: req.company.plan_max_workers,
+      plan_max_clients: req.company.plan_max_clients,
+      plan_max_admins: req.company.plan_max_admins,
     });
   } catch (error) {
     next(error);
@@ -265,7 +268,7 @@ const deleteUser = async (req, res, next) => {
 const restoreUser = async (req, res, next) => {
   try {
     httpValidator({ params: req.params }, deleteUserSchema);
-    const result = await restoreDeletedUser({ id: Number(req.params.id) });
+    const result = await restoreDeletedUser({ id: Number(req.params.id) }, req.company);
     res.status(200).json(result);
   } catch (error) {
     next(error);

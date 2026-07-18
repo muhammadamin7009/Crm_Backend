@@ -1,6 +1,19 @@
 const db = require("../db");
 const { NotFoundError, ForbiddenError } = require("./errors");
 
+const SUBSCRIPTION_GRACE_DAYS = 7;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const utcDay = (value = new Date()) => {
+  const date = value instanceof Date ? value : new Date(String(value).slice(0, 10));
+  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+};
+
+const daysAfterSubscriptionEnd = (endsAt) => {
+  if (!endsAt) return null;
+  return Math.floor((utcDay() - utcDay(endsAt)) / DAY_MS);
+};
+
 const tenantContext = async (req, res, next) => {
   try {
     const company = await db
@@ -27,14 +40,26 @@ const tenantContext = async (req, res, next) => {
     if (company.status !== "active") {
       throw new ForbiddenError("Korxona tizimi vaqtincha faol emas");
     }
-    if (["overdue", "suspended"].includes(company.subscription_status)) {
+    if (company.subscription_status === "suspended") {
       throw new ForbiddenError("Korxona obunasi faol emas");
     }
-    if (
-      company.subscription_ends_at &&
-      new Date(company.subscription_ends_at) < new Date(new Date().toISOString().slice(0, 10))
-    ) {
-      throw new ForbiddenError("Korxona obuna muddati tugagan");
+    if (company.subscription_status === "overdue" && !company.subscription_ends_at) {
+      throw new ForbiddenError("Korxona obunasi faol emas");
+    }
+
+    const expiredDays = daysAfterSubscriptionEnd(company.subscription_ends_at);
+    if (expiredDays !== null && expiredDays > SUBSCRIPTION_GRACE_DAYS) {
+      await db.root.transaction(async (trx) => {
+        await trx("company_subscriptions").where({ company_id: company.id }).update({
+          status: "suspended",
+          updated_at: trx.fn.now(),
+        });
+        await trx("companies").where({ id: company.id }).update({
+          status: "suspended",
+          updated_at: trx.fn.now(),
+        });
+      });
+      throw new ForbiddenError("Korxona obunasi 7 kunlik imtiyoz davridan keyin to'xtatildi");
     }
 
     req.company = company;

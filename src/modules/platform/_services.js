@@ -8,6 +8,26 @@ const { assertPlanCanFitCounts, roleCounts } = require("../../shared/plan-user-l
 const setTenantContext = (trx, companyId) =>
   trx.raw("SELECT set_config('app.current_company_id', ?, true)", [String(companyId)]);
 
+const suspendExpiredCompanies = () =>
+  db.root.transaction(async (trx) => {
+    const expired = await trx("company_subscriptions")
+      .whereIn("status", ["trial", "active", "overdue"])
+      .whereNotNull("ends_at")
+      .whereRaw("ends_at < CURRENT_DATE - INTERVAL '7 days'")
+      .update({ status: "suspended", updated_at: trx.fn.now() })
+      .returning("company_id");
+
+    const companyIds = expired.map((row) => Number(row.company_id || row)).filter(Boolean);
+    if (companyIds.length) {
+      await trx("companies")
+        .whereIn("id", companyIds)
+        .where({ status: "active" })
+        .update({ status: "suspended", updated_at: trx.fn.now() });
+    }
+
+    return companyIds.length;
+  });
+
 const login = async ({ username, password }) => {
   const admin = await db.root("platform_admins").where({ username, is_active: true }).first();
   if (!admin || !(await bcrypt.compare(password, admin.password)))
@@ -23,6 +43,8 @@ const login = async ({ username, password }) => {
 };
 
 const listCompanies = async () => {
+  await suspendExpiredCompanies();
+
   const companies = await db
     .root("companies as c")
     .leftJoin("company_subscriptions as cs", "cs.company_id", "c.id")

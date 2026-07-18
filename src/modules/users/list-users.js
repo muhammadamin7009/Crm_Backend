@@ -30,6 +30,7 @@ const listUsers = async (
   {
     q,
     role,
+    scope,
     is_deleted = false,
     limit = 20,
     offset = 0,
@@ -84,6 +85,17 @@ const listUsers = async (
   }
 
   const limitedRoles = getDirectoryRoles(actor);
+  const scopeRoles =
+    scope === "clients"
+      ? ["client", "customer"]
+      : scope === "staff"
+        ? ["super_admin", "admin", "worker"]
+        : null;
+  const visibleRoles = limitedRoles
+    ? scopeRoles
+      ? limitedRoles.filter((item) => scopeRoles.includes(item))
+      : limitedRoles
+    : scopeRoles;
   const showDeleted =
     limitedRoles === null && actor?.role === "super_admin" && (is_deleted === true || is_deleted === "true");
   const query = db("users")
@@ -102,13 +114,13 @@ const listUsers = async (
       "is_deleted",
     );
 
-  if (limitedRoles) {
-    if (!limitedRoles.length) {
+  if (visibleRoles) {
+    if (!visibleRoles.length) {
       query.whereRaw("1 = 0");
-    } else if (role && limitedRoles.includes(role)) {
+    } else if (role && visibleRoles.includes(role)) {
       query.andWhere("role", role);
     } else {
-      query.whereIn("role", limitedRoles);
+      query.whereIn("role", visibleRoles);
     }
   } else if (role) {
     query.andWhere("role", role);

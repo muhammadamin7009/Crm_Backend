@@ -2,7 +2,8 @@ const Joi = require("joi");
 
 const ROLE_ENUM = ["super_admin", "admin", "client", "customer", "worker"];
 
-const PHONE_MESSAGE = "Telefon raqam xalqaro formatda bo'lishi kerak. Masalan: +998965001001";
+const PHONE_MESSAGE =
+  "Telefon raqam xalqaro formatda bo'lishi kerak. Masalan: +998965001001";
 
 const normalizePhone = (value) =>
   String(value || "")
@@ -23,7 +24,9 @@ const phoneSchema = Joi.string()
     }
 
     if (phone.startsWith("+998") && !/^\+998\d{9}$/.test(phone)) {
-      return helpers.message("O'zbekiston raqami +998 dan keyin aynan 9 ta raqam bo'lishi kerak");
+      return helpers.message(
+        "O'zbekiston raqami +998 dan keyin aynan 9 ta raqam bo'lishi kerak",
+      );
     }
 
     if (!/^\+[1-9]\d{7,14}$/.test(phone)) {
@@ -34,6 +37,7 @@ const phoneSchema = Joi.string()
   });
 
 const nameSchema = Joi.string().trim().max(50);
+const clientDebtSchema = Joi.number().precision(2).min(0).max(999999999999.99);
 
 // umumiy: id majburiy bo'lsin
 const idParams = Joi.object({
@@ -75,10 +79,22 @@ exports.postUserByAdminSchema = {
     password: Joi.string().required().min(6).max(100),
     phone: phoneSchema,
     user_image: Joi.string().uri().optional().allow(null, ""),
-    role: Joi.string().valid("admin", "client", "customer", "worker").required(),
+    role: Joi.string()
+      .valid("admin", "client", "customer", "worker")
+      .required(),
+    client_debt_amount: clientDebtSchema.when("role", {
+      is: "client",
+      then: Joi.optional(),
+      otherwise: Joi.forbidden(),
+    }),
     permission_preset: Joi.when("role", {
       is: "admin",
-      then: Joi.string().valid("sales_admin", "production_admin", "accountant", "materials_admin"),
+      then: Joi.string().valid(
+        "sales_admin",
+        "production_admin",
+        "accountant",
+        "materials_admin",
+      ),
       otherwise: Joi.forbidden(),
     }),
   }),
@@ -92,7 +108,14 @@ exports.postUserByStaffSchema = {
     password: Joi.string().required().min(6).max(100),
     phone: phoneSchema,
     user_image: Joi.string().uri().optional().allow(null, ""),
-    role: Joi.string().valid("client", "customer", "worker").default("customer"),
+    role: Joi.string()
+      .valid("client", "customer", "worker")
+      .default("customer"),
+    client_debt_amount: clientDebtSchema.when("role", {
+      is: "client",
+      then: Joi.optional(),
+      otherwise: Joi.forbidden(),
+    }),
   }),
 };
 
@@ -104,6 +127,7 @@ exports.patchUserSchema = {
     password: Joi.string().min(6).max(100),
     phone: phoneSchema,
     role: Joi.string().valid(...ROLE_ENUM),
+    client_debt_amount: clientDebtSchema,
   }).min(1), // kamida bitta field bo'lishi shart
   params: idParams,
 };
@@ -130,10 +154,13 @@ exports.getUsersSchema = {
     role: Joi.string()
       .valid(...ROLE_ENUM)
       .allow(""),
+    scope: Joi.string().valid("staff", "clients").allow(""),
     is_deleted: Joi.boolean().default(false),
     limit: Joi.number().integer().min(1).max(100).default(20),
     offset: Joi.number().integer().min(0).default(0),
-    sort_by: Joi.string().valid("updated_at", "created_at").default("created_at"),
+    sort_by: Joi.string()
+      .valid("updated_at", "created_at")
+      .default("created_at"),
     sort_order: Joi.string().valid("asc", "desc").default("desc"),
   }),
 };

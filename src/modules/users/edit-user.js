@@ -1,8 +1,20 @@
 const db = require("../../db");
 const bcrypt = require("bcryptjs");
-const { NotFoundError, BadRequestError, ForbiddenError } = require("../../shared/errors");
+const {
+  NotFoundError,
+  BadRequestError,
+  ForbiddenError,
+} = require("../../shared/errors");
 const { normalizeUserInput } = require("./normalize-user-input");
-const { assertRoleLimit, groupForRole } = require("../../shared/plan-user-limits");
+const {
+  assertRoleLimit,
+  groupForRole,
+} = require("../../shared/plan-user-limits");
+const {
+  assertCanManageClientDebt,
+  getClientBalanceValues,
+  normalizeDebt,
+} = require("./client-debt");
 
 const ROLE = {
   SUPER: "super_admin",
@@ -24,7 +36,9 @@ const editUser = async (body, { id }, actor, company) => {
   const actorRole = actor?.role;
 
   if (target.is_deleted && actorRole !== ROLE.SUPER) {
-    throw new ForbiddenError("O'chirilgan hodimni faqat super admin tahrirlay oladi");
+    throw new ForbiddenError(
+      "O'chirilgan hodimni faqat super admin tahrirlay oladi",
+    );
   }
 
   // Patch /users/me bo'lsa actorId === id bo'ladi (controller shunday yuboryapti)
@@ -37,12 +51,15 @@ const editUser = async (body, { id }, actor, company) => {
   // Admin -> super_admin yoki admin ni edit qila olmaydi
   if (!isSelf && actorRole === ROLE.ADMIN) {
     if (target.role === ROLE.SUPER || target.role === ROLE.ADMIN) {
-      throw new ForbiddenError("Admin -- Super_admin yoki boshqa adminni edit qila olmaydi");
+      throw new ForbiddenError(
+        "Admin -- Super_admin yoki boshqa adminni edit qila olmaydi",
+      );
     }
   }
 
   // 2) Role update qoidalari
-  const patch = { ...normalizeUserInput(body), updated_at: db.fn.now() };
+  const { client_debt_amount: requestedClientDebt, ...userFields } = body;
+  const patch = { ...normalizeUserInput(userFields), updated_at: db.fn.now() };
 
   // Self editda role umuman ruxsat emas (schema ham yo'q),
   // lekin ehtiyot uchun baribir bloklaymiz:
@@ -52,7 +69,9 @@ const editUser = async (body, { id }, actor, company) => {
 
   // Hech kim (hatto super_admin ham) yangi super_admin tayinlay olmaydi
   if (patch.role === ROLE.SUPER) {
-    throw new BadRequestError("super_admin role berib bo'lmaydi (loyihada 1 ta)");
+    throw new BadRequestError(
+      "super_admin role berib bo'lmaydi (loyihada 1 ta)",
+    );
   }
 
   // Super_admin o'z roleni o'zgartira olmaydi (explicit)
@@ -75,9 +94,39 @@ const editUser = async (body, { id }, actor, company) => {
     await assertRoleLimit(patch.role, company);
   }
 
+  if (requestedClientDebt !== undefined) {
+    assertCanManageClientDebt(actor);
+    const resultingRole = patch.role || target.role;
+    if (resultingRole !== ROLE.CLIENT) {
+      throw new BadRequestError("Qarzdorlik faqat mijoz uchun o'zgartiriladi");
+    }
+
+    const targetDebt = normalizeDebt(requestedClientDebt);
+    if (target.role === ROLE.CLIENT) {
+      const balance = await getClientBalanceValues(id);
+      patch.opening_debt = Number(
+        (
+          balance.opening_debt_amount +
+          targetDebt -
+          balance.debt_amount
+        ).toFixed(2),
+      );
+    } else {
+      patch.opening_debt = targetDebt;
+    }
+  } else if (
+    target.role === ROLE.CLIENT &&
+    patch.role &&
+    patch.role !== ROLE.CLIENT
+  ) {
+    patch.opening_debt = 0;
+  }
+
   // 3) username unique check (is_deleted=false)
   if (patch.username && patch.username !== target.username) {
-    const dup = await db("users").where({ username: patch.username, is_deleted: false }).first();
+    const dup = await db("users")
+      .where({ username: patch.username, is_deleted: false })
+      .first();
 
     if (dup) throw new BadRequestError("Username already exists");
   }

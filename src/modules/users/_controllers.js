@@ -89,7 +89,7 @@ const postUserByAdmin = async (req, res, next) => {
   try {
     httpValidator({ body: req.body }, postUserByAdminSchema);
 
-    const result = await createByAdmin(req.body);
+    const result = await createByAdmin(req.body, req.user);
 
     res.status(201).json(result);
   } catch (error) {
@@ -271,7 +271,10 @@ const deleteUser = async (req, res, next) => {
 const restoreUser = async (req, res, next) => {
   try {
     httpValidator({ params: req.params }, deleteUserSchema);
-    const result = await restoreDeletedUser({ id: Number(req.params.id) }, req.company);
+    const result = await restoreDeletedUser(
+      { id: Number(req.params.id) },
+      req.company,
+    );
     res.status(200).json(result);
   } catch (error) {
     next(error);
@@ -281,7 +284,9 @@ const restoreUser = async (req, res, next) => {
 const permanentlyDeleteUser = async (req, res, next) => {
   try {
     httpValidator({ params: req.params }, deleteUserSchema);
-    const result = await permanentlyRemoveDeletedUser({ id: Number(req.params.id) });
+    const result = await permanentlyRemoveDeletedUser({
+      id: Number(req.params.id),
+    });
     res.status(200).json(result);
   } catch (error) {
     next(error);

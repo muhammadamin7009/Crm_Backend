@@ -6,8 +6,9 @@ const {
   getPermissionPreset,
   INVENTORY_WORKER_PERMISSIONS,
 } = require("../../shared/auth/permissions");
+const { assertCanManageClientDebt, normalizeDebt } = require("./client-debt");
 
-const createByAdmin = async (payload) => {
+const createByAdmin = async (payload, actor) => {
   const {
     first_name,
     last_name,
@@ -23,12 +24,26 @@ const createByAdmin = async (payload) => {
     throw new BadRequestError("super_admin role berib bo‘lmaydi");
   }
 
-  const existing = await db("users").where({ username, is_deleted: false }).first();
+  const clientDebtAmount =
+    payload.client_debt_amount === undefined
+      ? 0
+      : normalizeDebt(payload.client_debt_amount);
+  if (payload.client_debt_amount !== undefined)
+    assertCanManageClientDebt(actor);
+  if (role !== "client" && clientDebtAmount !== 0) {
+    throw new BadRequestError("Boshlang'ich qarz faqat mijoz uchun kiritiladi");
+  }
+
+  const existing = await db("users")
+    .where({ username, is_deleted: false })
+    .first();
 
   if (existing) throw new BadRequestError("Username already exists");
 
   const hashPassword = await bcrypt.hash(password, 10);
-  const preset = payload.permission_preset ? getPermissionPreset(payload.permission_preset) : null;
+  const preset = payload.permission_preset
+    ? getPermissionPreset(payload.permission_preset)
+    : null;
 
   const user = await db.transaction(async (trx) => {
     const [created] = await trx("users")
@@ -40,6 +55,7 @@ const createByAdmin = async (payload) => {
         user_image: user_image || null,
         phone,
         role,
+        opening_debt: role === "client" ? clientDebtAmount : 0,
         is_deleted: false,
       })
       .returning([
@@ -57,7 +73,8 @@ const createByAdmin = async (payload) => {
       ? preset.permissions.filter(
           (permission) =>
             role === "admin" ||
-            (role === "worker" && INVENTORY_WORKER_PERMISSIONS.includes(permission)),
+            (role === "worker" &&
+              INVENTORY_WORKER_PERMISSIONS.includes(permission)),
         )
       : [];
 

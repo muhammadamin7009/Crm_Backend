@@ -49,6 +49,17 @@ exports.expenseCreate = {
     note: Joi.string().allow(null, ""),
   }),
 };
+exports.expenseUpdate = {
+  params,
+  body: Joi.object({
+    category_id: id,
+    account_id: id.allow(null, ""),
+    title: Joi.string().trim().max(160),
+    amount: Joi.number().positive(),
+    spent_at: Joi.date().iso(),
+    note: Joi.string().allow(null, ""),
+  }).min(1),
+};
 exports.accountCreate = {
   body: Joi.object({
     name: Joi.string().trim().max(100).required(),
@@ -68,6 +79,7 @@ exports.transactionCreate = {
 exports.returnCreate = {
   body: Joi.object({
     client_sale_id: id.required(),
+    refund_account_id: id.allow(null, ""),
     quantity: Joi.number().positive().required(),
     returned_at: Joi.date().iso(),
     reason: Joi.string().allow(null, ""),

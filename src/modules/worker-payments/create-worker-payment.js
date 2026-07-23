@@ -3,6 +3,7 @@ const { BadRequestError } = require("../../shared/errors");
 const { getWorker } = require("./helpers");
 const { getFormattedPayment } = require("./format-payment");
 const { getAdvanceBalance } = require("../worker-advances/helpers");
+const { syncCashTransaction } = require("../../shared/finance/cash-ledger");
 
 const formatMoney = (value) => new Intl.NumberFormat("uz-UZ").format(Number(value || 0));
 
@@ -100,21 +101,37 @@ const createWorkerPayment = async (body, actor) => {
     advanceDeduction,
   });
 
-  const [created] = await db("worker_payments")
-    .insert({
-      worker_id: Number(body.worker_id),
-      amount: Number(body.amount),
-      advance_deduction: advanceDeduction,
-      payment_type: body.payment_type || "salary",
-      paid_at: body.paid_at || db.fn.now(),
-      period_from: body.period_from || null,
-      period_to: body.period_to || null,
-      note: body.note || null,
-      created_by: actor.id,
-    })
-    .returning("id");
+  const createdId = await db.transaction((trx) =>
+    db.runWithDatabase(trx, async () => {
+      const [created] = await trx("worker_payments")
+        .insert({
+          worker_id: Number(body.worker_id),
+          amount: Number(body.amount),
+          advance_deduction: advanceDeduction,
+          payment_type: body.payment_type || "salary",
+          paid_at: body.paid_at || trx.fn.now(),
+          period_from: body.period_from || null,
+          period_to: body.period_to || null,
+          note: body.note || null,
+          created_by: actor.id,
+        })
+        .returning("id");
+      const id = created.id || created;
+      await syncCashTransaction(trx, {
+        sourceType: "worker_payment",
+        sourceId: id,
+        transactionType: "expense",
+        amount: body.amount,
+        accountId: body.account_id,
+        transactedAt: body.paid_at,
+        description: `Ishchi to'lovi #${id}`,
+        createdBy: actor.id,
+      });
+      return id;
+    }),
+  );
 
-  const payment = await getFormattedPayment(created.id || created);
+  const payment = await getFormattedPayment(createdId);
   return { worker_payment: payment };
 };
 

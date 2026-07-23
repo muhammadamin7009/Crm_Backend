@@ -48,7 +48,7 @@ const getWorkerAdvance = async (req, res, next) => {
 const patchWorkerAdvance = async (req, res, next) => {
   try {
     httpValidator({ body: req.body, params: req.params }, schemas.updateWorkerAdvanceSchema);
-    res.json(await updateService(req.body, { id: Number(req.params.id) }));
+    res.json(await updateService(req.body, { id: Number(req.params.id) }, req.user));
   } catch (error) {
     next(error);
   }

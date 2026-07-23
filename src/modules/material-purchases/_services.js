@@ -1,6 +1,10 @@
 const db = require("../../db");
 const { BadRequestError, NotFoundError } = require("../../shared/errors");
 const inventory = require("../inventory/_services");
+const {
+  syncCashTransaction,
+  removeCashTransaction,
+} = require("../../shared/finance/cash-ledger");
 
 const clean = (value) => value || null;
 const getSupplier = async (id) => {
@@ -255,6 +259,16 @@ const createPurchase = async (body, actor) => {
       items.map((item) => ({ ...item, purchase_id: purchaseId })),
     );
     await inventory.syncMaterialPurchase(trx, purchaseId, actor);
+    await syncCashTransaction(trx, {
+      sourceType: "material_purchase",
+      sourceId: purchaseId,
+      transactionType: "expense",
+      amount: paid,
+      accountId: body.account_id,
+      transactedAt: body.purchased_at,
+      description: `Xomashyo xarididagi to'lov #${purchaseId}`,
+      createdBy: actor.id,
+    });
     return {
       material_purchase: await formatPurchase(purchaseId, trx),
       previous_debt: previous.debt_amount,
@@ -279,6 +293,26 @@ const updatePurchase = async (body, id, actor) => {
   const subtotal = items.reduce((sum, item) => sum + item.total_amount, 0);
   const paid =
     body.paid_amount !== undefined ? Number(body.paid_amount) : Number(existing.paid_amount);
+  const [supplier, otherPurchases, supplierPayments] = await Promise.all([
+    db("suppliers").where({ id: supplierId, is_deleted: false }).first("opening_balance"),
+    db("material_purchases")
+      .where({ supplier_id: supplierId, is_deleted: false })
+      .whereNot({ id: Number(id) })
+      .sum({ amount: "subtotal" })
+      .first(),
+    db("supplier_payments")
+      .where({ supplier_id: supplierId, is_deleted: false })
+      .sum({ amount: "amount" })
+      .first(),
+  ]);
+  const availableDebt =
+    Number(supplier?.opening_balance || 0) +
+    Number(otherPurchases?.amount || 0) -
+    Number(supplierPayments?.amount || 0) +
+    subtotal;
+  if (paid > availableDebt) {
+    throw new BadRequestError(`Berilgan summa jami ${availableDebt} so'm qarzdan oshmasin`);
+  }
   return db.transaction(async (trx) => {
     await trx("material_purchases")
       .where({ id })
@@ -298,6 +332,16 @@ const updatePurchase = async (body, id, actor) => {
       );
     }
     await inventory.syncMaterialPurchase(trx, id, actor);
+    await syncCashTransaction(trx, {
+      sourceType: "material_purchase",
+      sourceId: id,
+      transactionType: "expense",
+      amount: paid,
+      accountId: body.account_id,
+      transactedAt: body.purchased_at || existing.purchased_at,
+      description: `Xomashyo xarididagi to'lov #${id}`,
+      createdBy: actor?.id || existing.created_by,
+    });
     return { material_purchase: await formatPurchase(id, trx) };
   });
 };
@@ -308,6 +352,7 @@ const deletePurchase = async (id, actor) =>
       .where({ id })
       .update({ is_deleted: true, updated_at: trx.fn.now() });
     await inventory.syncMaterialPurchase(trx, id, actor);
+    await removeCashTransaction(trx, "material_purchase", id);
     return { message: "Xarid o'chirildi" };
   });
 
@@ -368,15 +413,28 @@ const createSupplierPayment = async (body, actor) => {
   const balance = await supplierBalance({ supplier_id: body.supplier_id });
   if (Number(body.amount) > balance.debt_amount)
     throw new BadRequestError(`To'lov qarzdan oshmasin. Qarz: ${balance.debt_amount}`);
-  const [row] = await db("supplier_payments")
-    .insert({
-      supplier_id: Number(body.supplier_id),
-      amount: Number(body.amount),
-      paid_at: body.paid_at || db.fn.now(),
-      note: clean(body.note),
-      created_by: actor.id,
-    })
-    .returning("*");
+  const row = await db.transaction(async (trx) => {
+    const [created] = await trx("supplier_payments")
+      .insert({
+        supplier_id: Number(body.supplier_id),
+        amount: Number(body.amount),
+        paid_at: body.paid_at || trx.fn.now(),
+        note: clean(body.note),
+        created_by: actor.id,
+      })
+      .returning("*");
+    await syncCashTransaction(trx, {
+      sourceType: "supplier_payment",
+      sourceId: created.id,
+      transactionType: "expense",
+      amount: created.amount,
+      accountId: body.account_id,
+      transactedAt: created.paid_at,
+      description: `Ta'minotchiga to'lov #${created.id}`,
+      createdBy: actor.id,
+    });
+    return created;
+  });
   return { supplier_payment: row };
 };
 const listSupplierPayments = async ({

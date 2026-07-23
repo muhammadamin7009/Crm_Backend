@@ -14,6 +14,8 @@ router.get("/expense-categories", ...viewManager, c.listCategories);
 router.post("/expense-categories", ...manageManager, c.createCategory);
 router.get("/expenses", ...viewManager, c.listExpenses);
 router.post("/expenses", ...manageManager, c.createExpense);
+router.patch("/expenses/:id", ...manageManager, c.updateExpense);
+router.delete("/expenses/:id", ...manageManager, c.deleteExpense);
 router.get("/financial-accounts", ...viewManager, c.listAccounts);
 router.post("/financial-accounts", ...manageManager, c.createAccount);
 router.get("/cash-transactions", ...viewManager, c.listTransactions);

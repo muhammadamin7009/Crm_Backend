@@ -34,6 +34,8 @@ module.exports = {
   createCategory: run(schemas.categoryCreate, s.createCategory, 201),
   listExpenses: run(schemas.list, s.listExpenses, 200, "query"),
   createExpense: run(schemas.expenseCreate, s.createExpense, 201),
+  updateExpense: run(schemas.expenseUpdate, s.updateExpense),
+  deleteExpense: run(schemas.id, s.deleteExpense, 200, "id"),
   listAccounts: run({ query: JoiObject() }, s.listAccounts, 200, "query"),
   createAccount: run(schemas.accountCreate, s.createAccount, 201),
   listTransactions: run(schemas.list, s.listTransactions, 200, "query"),

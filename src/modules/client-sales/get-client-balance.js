@@ -39,7 +39,10 @@ const getClientBalance = async ({ client_id, date_from, date_to }) => {
       .sum({ initial_paid_amount: "paid_amount" })
       .first(),
     paymentsQuery.sum({ extra_paid_amount: "amount" }).first(),
-    returnsQuery.sum({ returned_amount: "amount" }).first(),
+    returnsQuery
+      .sum({ returned_amount: "amount" })
+      .sum({ refunded_amount: "refund_amount" })
+      .first(),
     !date_from && !date_to
       ? openingDebtQuery.sum({ opening_debt_amount: "opening_debt" }).first()
       : Promise.resolve({ opening_debt_amount: 0 }),
@@ -48,9 +51,11 @@ const getClientBalance = async ({ client_id, date_from, date_to }) => {
   const openingDebtAmount = Number(opening.opening_debt_amount || 0);
   const totalAmount = Number(sales.total_amount || 0);
   const returnedAmount = Number(returns.returned_amount || 0);
+  const refundedAmount = Number(returns.refunded_amount || 0);
   const paidAmount =
     Number(sales.initial_paid_amount || 0) +
-    Number(payments.extra_paid_amount || 0);
+    Number(payments.extra_paid_amount || 0) -
+    refundedAmount;
 
   return {
     client_id: client_id ? Number(client_id) : null,
@@ -59,6 +64,7 @@ const getClientBalance = async ({ client_id, date_from, date_to }) => {
       total_amount: totalAmount,
       paid_amount: paidAmount,
       returned_amount: returnedAmount,
+      refunded_amount: refundedAmount,
       debt_amount:
         openingDebtAmount + totalAmount - returnedAmount - paidAmount,
     },

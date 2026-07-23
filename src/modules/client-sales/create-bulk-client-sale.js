@@ -4,6 +4,7 @@ const { BadRequestError } = require("../../shared/errors");
 const { getClient, getProduct } = require("./helpers");
 const { getFormattedSale } = require("./format-sale");
 const inventory = require("../inventory/_services");
+const { syncCashTransaction } = require("../../shared/finance/cash-ledger");
 
 const createBulkClientSale = async (body, actor) => {
   const result = await db.transaction((trx) =>
@@ -59,6 +60,18 @@ const createBulkClientSale = async (body, actor) => {
         await inventory.syncClientSaleStock(trx, row.id, actor, {
           occurredAt: body.sold_at || trx.fn.now(),
           note: `Mijozga yangi savdo #${row.id}`,
+        });
+      }
+      for (const row of rows.map((item, index) => ({ ...item, id: inserted[index].id }))) {
+        await syncCashTransaction(trx, {
+          sourceType: "client_sale",
+          sourceId: row.id,
+          transactionType: "income",
+          amount: row.paid_amount,
+          accountId: body.account_id,
+          transactedAt: row.sold_at,
+          description: `Savdodagi boshlang'ich to'lov #${row.id}`,
+          createdBy: actor.id,
         });
       }
       return { ids, batchId, totalAmount, paidAmount };

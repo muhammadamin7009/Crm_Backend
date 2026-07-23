@@ -7,8 +7,9 @@ const {
 } = require("./helpers");
 const { getFormattedPayment } = require("./format-payment");
 const { BadRequestError } = require("../../shared/errors");
+const { syncCashTransaction } = require("../../shared/finance/cash-ledger");
 
-const updateClientPayment = async (body, { id }) => {
+const updateClientPayment = async (body, { id }, actor) => {
   const existing = await getExistingPayment(id);
   const clientId =
     body.client_id !== undefined ? Number(body.client_id) : Number(existing.client_id);
@@ -38,16 +39,29 @@ const updateClientPayment = async (body, { id }) => {
     excludePaymentId: id,
   });
 
-  await db("client_payments")
-    .where({ id })
-    .update({
-      client_id: clientId,
-      client_sale_id: saleId,
-      amount,
-      paid_at: body.paid_at || existing.paid_at,
-      note: body.note !== undefined ? body.note || null : existing.note,
-      updated_at: db.fn.now(),
-    });
+  await db.transaction((trx) =>
+    db.runWithDatabase(trx, async () => {
+      const paidAt = body.paid_at || existing.paid_at;
+      await trx("client_payments").where({ id }).update({
+        client_id: clientId,
+        client_sale_id: saleId,
+        amount,
+        accountId: body.account_id,
+        paid_at: paidAt,
+        note: body.note !== undefined ? body.note || null : existing.note,
+        updated_at: trx.fn.now(),
+      });
+      await syncCashTransaction(trx, {
+        sourceType: "client_payment",
+        sourceId: id,
+        transactionType: "income",
+        amount,
+        transactedAt: paidAt,
+        description: `Mijoz to'lovi #${id}`,
+        createdBy: actor?.id || existing.created_by,
+      });
+    }),
+  );
 
   const payment = await getFormattedPayment(id);
   return { client_payment: payment };

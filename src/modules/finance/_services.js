@@ -1,6 +1,10 @@
 const db = require("../../db");
 const { BadRequestError, NotFoundError } = require("../../shared/errors");
 const { getAdvanceBalance } = require("../worker-advances/helpers");
+const {
+  syncCashTransaction,
+  removeCashTransaction,
+} = require("../../shared/finance/cash-ledger");
 const inventory = require("../inventory/_services");
 
 const range = (query, column, { date_from, date_to }) => {
@@ -196,7 +200,7 @@ const closePayroll = async (id, actor) => {
         }
       }
       if (n(line.cash_amount) || n(line.advance_deduction) || n(line.other_deduction)) {
-        await trx("worker_payments")
+        const [payment] = await trx("worker_payments")
           .insert({
             worker_id: line.user_id,
             payroll_line_id: line.id,
@@ -211,7 +215,19 @@ const closePayroll = async (id, actor) => {
             created_by: actor.id,
           })
           .onConflict("payroll_line_id")
-          .ignore();
+          .ignore()
+          .returning("*");
+        if (payment) {
+          await syncCashTransaction(trx, {
+            sourceType: "worker_payment",
+            sourceId: payment.id,
+            transactionType: "expense",
+            amount: payment.amount,
+            transactedAt: payment.paid_at,
+            description: `Haftalik ish haqi #${period.id}`,
+            createdBy: actor.id,
+          });
+        }
       }
     }
 
@@ -308,20 +324,76 @@ const createExpense = async (body, actor) => {
         created_by: actor.id,
       })
       .returning("*");
-    if (body.account_id)
-      await trx("cash_transactions").insert({
-        account_id: body.account_id,
-        transaction_type: "expense",
-        source_type: "expense",
-        source_id: expense.id,
-        amount: body.amount,
-        transacted_at: body.spent_at || trx.fn.now(),
-        description: body.title,
-        created_by: actor.id,
-      });
+    await syncCashTransaction(trx, {
+      sourceType: "expense",
+      sourceId: expense.id,
+      transactionType: "expense",
+      amount: body.amount,
+      accountId: body.account_id,
+      transactedAt: body.spent_at,
+      description: body.title,
+      createdBy: actor.id,
+    });
     return { expense };
   });
 };
+
+const updateExpense = async (body, id, actor) =>
+  db.transaction(async (trx) => {
+    const existing = await trx("expenses").where({ id, is_deleted: false }).forUpdate().first();
+    if (!existing) throw new NotFoundError("Xarajat topilmadi");
+
+    const categoryId =
+      body.category_id !== undefined ? Number(body.category_id) : Number(existing.category_id);
+    const category = await trx("expense_categories")
+      .where({ id: categoryId, is_deleted: false, is_active: true })
+      .first();
+    if (!category) throw new NotFoundError("Xarajat kategoriyasi topilmadi");
+
+    const accountId =
+      body.account_id !== undefined
+        ? body.account_id
+          ? Number(body.account_id)
+          : null
+        : existing.account_id;
+    if (accountId) {
+      const account = await trx("financial_accounts")
+        .where({ id: accountId, is_deleted: false, is_active: true })
+        .first();
+      if (!account) throw new NotFoundError("Moliyaviy hisob topilmadi");
+    }
+
+    const values = {
+      category_id: categoryId,
+      account_id: accountId,
+      title: body.title !== undefined ? body.title : existing.title,
+      amount: body.amount !== undefined ? Number(body.amount) : Number(existing.amount),
+      spent_at: body.spent_at || existing.spent_at,
+      note: body.note !== undefined ? clean(body.note) : existing.note,
+      updated_at: trx.fn.now(),
+    };
+    const [expense] = await trx("expenses").where({ id }).update(values).returning("*");
+    await syncCashTransaction(trx, {
+      sourceType: "expense",
+      sourceId: id,
+      transactionType: "expense",
+      amount: values.amount,
+      accountId,
+      transactedAt: values.spent_at,
+      description: values.title,
+      createdBy: actor?.id || existing.created_by,
+    });
+    return { expense };
+  });
+
+const deleteExpense = async (id) =>
+  db.transaction(async (trx) => {
+    const existing = await trx("expenses").where({ id, is_deleted: false }).forUpdate().first();
+    if (!existing) throw new NotFoundError("Xarajat topilmadi");
+    await trx("expenses").where({ id }).update({ is_deleted: true, updated_at: trx.fn.now() });
+    await removeCashTransaction(trx, "expense", id);
+    return { message: "Xarajat o'chirildi va hisob balansi tiklandi" };
+  });
 
 const listAccounts = async () => {
   const accounts = await db("financial_accounts as fa")
@@ -400,23 +472,48 @@ const createReturn = async (body, actor) => {
       const returned = await trx("client_returns")
         .where({ client_sale_id: sale.id, is_deleted: false })
         .sum({ quantity: "quantity" })
+        .sum({ amount: "amount" })
+        .sum({ refund_amount: "refund_amount" })
         .first();
       if (n(returned.quantity) + n(body.quantity) > n(sale.quantity))
         throw new BadRequestError(
           `Qaytarish miqdori qolgan ${n(sale.quantity) - n(returned.quantity)} dan oshmasin`,
         );
+      const payments = await trx("client_payments")
+        .where({ client_sale_id: sale.id, is_deleted: false })
+        .sum({ amount: "amount" })
+        .first();
+      const returnAmount = n(body.quantity) * n(sale.unit_price);
+      const totalPaid = n(sale.paid_amount) + n(payments.amount);
+      const netSaleAfterReturn = n(sale.total_amount) - n(returned.amount) - returnAmount;
+      const refundAmount = Math.max(
+        0,
+        totalPaid - netSaleAfterReturn - n(returned.refund_amount),
+      );
       const [created] = await trx("client_returns")
         .insert({
           client_sale_id: sale.id,
           client_id: sale.client_id,
           product_id: sale.product_id,
           quantity: body.quantity,
-          amount: n(body.quantity) * n(sale.unit_price),
+          amount: returnAmount,
+          refund_amount: refundAmount,
+          refund_account_id: body.refund_account_id || null,
           returned_at: body.returned_at || trx.fn.now(),
           reason: clean(body.reason),
           created_by: actor.id,
         })
         .returning("*");
+      await syncCashTransaction(trx, {
+        sourceType: "client_return_refund",
+        sourceId: created.id,
+        transactionType: "expense",
+        amount: refundAmount,
+        accountId: body.refund_account_id,
+        transactedAt: created.returned_at,
+        description: `Mijoz savdosi #${sale.id} qaytarimi`,
+        createdBy: actor.id,
+      });
       await inventory.syncClientSaleStock(trx, sale.id, actor, {
         occurredAt: created.returned_at,
         note: `Mijoz savdosi #${sale.id} bo'yicha mahsulot qaytdi`,
@@ -433,17 +530,41 @@ const profitLoss = async (filters) => {
       (await range(db(table).where(extra), dateColumn, filters).sum({ value: column }).first())
         .value,
     );
-  const [sales, returns, materials, expenses] = await Promise.all([
+  const [sales, returns, materialPurchases, expenses] = await Promise.all([
     sum("client_sales", "total_amount", "sold_at", { is_deleted: false }),
     sum("client_returns", "amount", "returned_at", { is_deleted: false }),
     sum("material_purchases", "subtotal", "purchased_at", { is_deleted: false }),
     sum("expenses", "amount", "spent_at", { is_deleted: false }),
   ]);
+  const averageCosts = db("material_purchase_items as mpi")
+    .join("material_purchases as mp", "mp.id", "mpi.purchase_id")
+    .where("mp.is_deleted", false)
+    .groupBy("mpi.raw_material_id")
+    .select("mpi.raw_material_id")
+    .select(db.raw("SUM(mpi.total_amount) / NULLIF(SUM(mpi.quantity), 0) AS average_cost"));
+  const consumptionQuery = range(
+    db("inventory_movements as im")
+      .leftJoin(averageCosts.as("cost"), "cost.raw_material_id", "im.item_id")
+      .where({
+        "im.item_type": "raw_material",
+        "im.movement_type": "out",
+        "im.reference_type": "worker_output_stock",
+      }),
+    "im.occurred_at",
+    filters,
+  );
+  const materialConsumption = n(
+    (
+      await consumptionQuery
+        .sum({ value: db.raw("ABS(im.quantity_delta) * COALESCE(cost.average_cost, 0)") })
+        .first()
+    ).value,
+  );
   const payrollQuery = range(
     db("payroll_lines as pl").join("payroll_periods as pp", "pp.id", "pl.period_id"),
     "pp.payment_date",
     filters,
-  );
+  ).where("pp.status", "closed");
   const payrollSum = n((await payrollQuery.sum({ value: "pl.total_earned" }).first()).value);
   const netRevenue = sales - returns;
   return {
@@ -451,10 +572,12 @@ const profitLoss = async (filters) => {
       sales,
       returns,
       net_revenue: netRevenue,
-      material_costs: materials,
+      material_costs: materialConsumption,
+      material_purchase_costs: materialPurchases,
       payroll_costs: payrollSum,
       other_expenses: expenses,
-      operational_result: netRevenue - materials - payrollSum - expenses,
+      operational_result: netRevenue - materialConsumption - payrollSum - expenses,
+      accounting_basis: "accrual_weighted_average",
     },
   };
 };
@@ -469,6 +592,8 @@ module.exports = {
   createCategory,
   listExpenses,
   createExpense,
+  updateExpense,
+  deleteExpense,
   listAccounts,
   createAccount,
   listTransactions,

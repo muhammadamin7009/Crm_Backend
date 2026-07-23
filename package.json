@@ -6,10 +6,12 @@
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
+    "test": "node scripts/check-syntax.js",
     "backup": "node scripts/backup-database.js",
     "demo": "node scripts/seed-demo.js",
     "smoke:inventory": "node scripts/inventory-smoke.js",
     "smoke:production-recipe": "node scripts/production-recipe-smoke.js",
+    "smoke:accounting-integrity": "node scripts/accounting-integrity-smoke.js",
     "format": "prettier --write ."
   },
   "keywords": [],

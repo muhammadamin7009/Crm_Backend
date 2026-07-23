@@ -3,6 +3,7 @@ const Joi = require("joi");
 const idParams = Joi.object({ id: Joi.number().integer().positive().required() });
 const fields = {
   worker_id: Joi.number().integer().positive(),
+  account_id: Joi.number().integer().positive().allow(null, ""),
   amount: Joi.number().precision(2).positive(),
   given_at: Joi.date().iso(),
   note: Joi.string().trim().allow(null, ""),

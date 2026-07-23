@@ -57,9 +57,11 @@ const getClientPaymentsSummary = async (req, res, next) => {
 const patchClientPayment = async (req, res, next) => {
   try {
     httpValidator({ body: req.body, params: req.params }, updateClientPaymentSchema);
-    const result = await updateClientPaymentService(req.body, {
-      id: Number(req.params.id),
-    });
+    const result = await updateClientPaymentService(
+      req.body,
+      { id: Number(req.params.id) },
+      req.user,
+    );
     res.status(200).json(result);
   } catch (error) {
     next(error);

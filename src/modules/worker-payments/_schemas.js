@@ -8,6 +8,7 @@ const PAYMENT_TYPES = ["salary", "advance", "bonus", "other"];
 
 const paymentFields = {
   worker_id: Joi.number().integer().positive(),
+  account_id: Joi.number().integer().positive().allow(null, ""),
   amount: Joi.number().precision(2).min(0),
   advance_deduction: Joi.number().precision(2).min(0),
   payment_type: Joi.string().valid(...PAYMENT_TYPES),

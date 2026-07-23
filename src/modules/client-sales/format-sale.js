@@ -19,6 +19,7 @@ const formatSaleQuery = () =>
         .select("client_sale_id")
         .sum({ returned_amount: "amount" })
         .sum({ returned_quantity: "quantity" })
+        .sum({ refunded_amount: "refund_amount" })
         .groupBy("client_sale_id")
         .as("cra"),
       "cra.client_sale_id",
@@ -51,14 +52,17 @@ const selectSaleFields = (query) =>
     "cs.total_amount",
     db.raw("COALESCE(cra.returned_quantity, 0) as returned_quantity"),
     db.raw("COALESCE(cra.returned_amount, 0) as returned_amount"),
+    db.raw("COALESCE(cra.refunded_amount, 0) as refunded_amount"),
     "cs.paid_amount",
     db.raw("COALESCE(cpa.extra_paid_amount, 0) as extra_paid_amount"),
-    db.raw("(cs.paid_amount + COALESCE(cpa.extra_paid_amount, 0)) as current_paid_amount"),
     db.raw(
-      "(cs.total_amount - COALESCE(cra.returned_amount, 0) - cs.paid_amount - COALESCE(cpa.extra_paid_amount, 0)) as remaining_debt",
+      "(cs.paid_amount + COALESCE(cpa.extra_paid_amount, 0) - COALESCE(cra.refunded_amount, 0)) as current_paid_amount",
     ),
     db.raw(
-      "(cs.total_amount - COALESCE(cra.returned_amount, 0) - cs.paid_amount - COALESCE(cpa.extra_paid_amount, 0)) as debt_amount",
+      "(cs.total_amount - COALESCE(cra.returned_amount, 0) - cs.paid_amount - COALESCE(cpa.extra_paid_amount, 0) + COALESCE(cra.refunded_amount, 0)) as remaining_debt",
+    ),
+    db.raw(
+      "(cs.total_amount - COALESCE(cra.returned_amount, 0) - cs.paid_amount - COALESCE(cpa.extra_paid_amount, 0) + COALESCE(cra.refunded_amount, 0)) as debt_amount",
     ),
     "cs.debt_amount as initial_debt_amount",
     "cs.sold_at",

@@ -4,8 +4,9 @@ const { assertPaymentDoesNotExceedBalance, assertPeriod } = require("./create-wo
 const { getFormattedPayment } = require("./format-payment");
 const { getAdvanceBalance } = require("../worker-advances/helpers");
 const { BadRequestError } = require("../../shared/errors");
+const { syncCashTransaction } = require("../../shared/finance/cash-ledger");
 
-const updateWorkerPayment = async (body, { id }) => {
+const updateWorkerPayment = async (body, { id }, actor) => {
   const existing = await getExistingPayment(id);
 
   const workerId =
@@ -41,19 +42,32 @@ const updateWorkerPayment = async (body, { id }) => {
     excludePaymentId: id,
   });
 
-  await db("worker_payments")
-    .where({ id })
-    .update({
-      worker_id: workerId,
-      amount,
-      advance_deduction: advanceDeduction,
-      payment_type: body.payment_type || existing.payment_type,
-      paid_at: body.paid_at || existing.paid_at,
-      period_from: periodFrom,
-      period_to: periodTo,
-      note: body.note !== undefined ? body.note || null : existing.note,
-      updated_at: db.fn.now(),
-    });
+  await db.transaction((trx) =>
+    db.runWithDatabase(trx, async () => {
+      const paidAt = body.paid_at || existing.paid_at;
+      await trx("worker_payments").where({ id }).update({
+        worker_id: workerId,
+        amount,
+        accountId: body.account_id,
+        advance_deduction: advanceDeduction,
+        payment_type: body.payment_type || existing.payment_type,
+        paid_at: paidAt,
+        period_from: periodFrom,
+        period_to: periodTo,
+        note: body.note !== undefined ? body.note || null : existing.note,
+        updated_at: trx.fn.now(),
+      });
+      await syncCashTransaction(trx, {
+        sourceType: "worker_payment",
+        sourceId: id,
+        transactionType: "expense",
+        amount,
+        transactedAt: paidAt,
+        description: `Ishchi to'lovi #${id}`,
+        createdBy: actor?.id || existing.created_by,
+      });
+    }),
+  );
 
   const payment = await getFormattedPayment(id);
   return { worker_payment: payment };

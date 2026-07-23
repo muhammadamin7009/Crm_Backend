@@ -47,6 +47,7 @@ const item = Joi.object({
 exports.createPurchaseSchema = {
   body: Joi.object({
     supplier_id: id.required(),
+    account_id: id.allow(null, ""),
     purchased_at: Joi.date().iso(),
     paid_amount: Joi.number().precision(2).min(0).default(0),
     note: Joi.string().allow(null, ""),
@@ -57,6 +58,7 @@ exports.updatePurchaseSchema = {
   params,
   body: Joi.object({
     supplier_id: id,
+    account_id: id.allow(null, ""),
     purchased_at: Joi.date().iso(),
     paid_amount: Joi.number().precision(2).min(0),
     note: Joi.string().allow(null, ""),
@@ -67,6 +69,7 @@ exports.updatePurchaseSchema = {
 exports.createSupplierPaymentSchema = {
   body: Joi.object({
     supplier_id: id.required(),
+    account_id: id.allow(null, ""),
     amount: Joi.number().precision(2).positive().required(),
     paid_at: Joi.date().iso(),
     note: Joi.string().allow(null, ""),

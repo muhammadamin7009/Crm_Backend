@@ -54,12 +54,15 @@ const listClientSales = async (filters) => {
     .clearSelect()
     .sum({ total_amount: "cs.total_amount" })
     .sum({ returned_amount: db.raw("COALESCE(cra.returned_amount, 0)") })
+    .sum({ refunded_amount: db.raw("COALESCE(cra.refunded_amount, 0)") })
     .sum({
-      paid_amount: db.raw("cs.paid_amount + COALESCE(cpa.extra_paid_amount, 0)"),
+      paid_amount: db.raw(
+        "cs.paid_amount + COALESCE(cpa.extra_paid_amount, 0) - COALESCE(cra.refunded_amount, 0)",
+      ),
     })
     .sum({
       debt_amount: db.raw(
-        "cs.total_amount - COALESCE(cra.returned_amount, 0) - cs.paid_amount - COALESCE(cpa.extra_paid_amount, 0)",
+        "cs.total_amount - COALESCE(cra.returned_amount, 0) - cs.paid_amount - COALESCE(cpa.extra_paid_amount, 0) + COALESCE(cra.refunded_amount, 0)",
       ),
     })
     .first();
@@ -79,6 +82,7 @@ const listClientSales = async (filters) => {
     totals: {
       total_amount: Number(totals.total_amount || 0),
       returned_amount: Number(totals.returned_amount || 0),
+      refunded_amount: Number(totals.refunded_amount || 0),
       paid_amount: Number(totals.paid_amount || 0),
       debt_amount: Number(totals.debt_amount || 0),
     },

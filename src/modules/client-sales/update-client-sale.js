@@ -3,6 +3,7 @@ const { calculateSaleAmounts, getClient, getExistingSale, getProduct } = require
 const { getFormattedSale } = require("./format-sale");
 const inventory = require("../inventory/_services");
 const { BadRequestError } = require("../../shared/errors");
+const { syncCashTransaction } = require("../../shared/finance/cash-ledger");
 
 const updateClientSale = async (body, { id }, actor) => {
   await db.transaction((trx) =>
@@ -30,8 +31,25 @@ const updateClientSale = async (body, { id }, actor) => {
       const returned = await trx("client_returns")
         .where({ client_sale_id: id, is_deleted: false })
         .sum({ quantity: "quantity" })
+        .sum({ amount: "amount" })
+        .sum({ refund_amount: "refund_amount" })
         .first();
       const returnedQuantity = Number(returned?.quantity || 0);
+      const returnedAmount = Number(returned?.amount || 0);
+      const refundedAmount = Number(returned?.refund_amount || 0);
+      const linkedPayments = await trx("client_payments")
+        .where({ client_sale_id: id, is_deleted: false })
+        .sum({ amount: "amount" })
+        .first();
+      const linkedPaidAmount = Number(linkedPayments?.amount || 0);
+      if (
+        clientId !== Number(existing.client_id) &&
+        (linkedPaidAmount > 0 || returnedQuantity > 0)
+      ) {
+        throw new BadRequestError(
+          "To'lov yoki qaytarish amali bor savdoning mijozini o'zgartirib bo'lmaydi",
+        );
+      }
       if (returnedQuantity > 0) {
         if (
           productId !== Number(existing.product_id) ||
@@ -55,6 +73,13 @@ const updateClientSale = async (body, { id }, actor) => {
       const paidAmount =
         body.paid_amount !== undefined ? Number(body.paid_amount) : Number(existing.paid_amount);
       const amounts = calculateSaleAmounts({ quantity, unitPrice, paidAmount });
+      const netTotal = Math.max(0, amounts.total_amount - returnedAmount);
+      const netPaidAmount = amounts.paid_amount + linkedPaidAmount - refundedAmount;
+      if (netPaidAmount > netTotal) {
+        throw new BadRequestError(
+          `Savdoni kamaytirib bo'lmaydi: qaytarilgan puldan keyingi to'lov ${netPaidAmount}, qaytarishdan keyingi savdo ${netTotal}`,
+        );
+      }
 
       await trx("client_sales")
         .where({ id })
@@ -73,6 +98,16 @@ const updateClientSale = async (body, { id }, actor) => {
       await inventory.syncClientSaleStock(trx, id, actor, {
         occurredAt: trx.fn.now(),
         note: `Mijoz savdosi #${id} o'zgartirildi`,
+      });
+      await syncCashTransaction(trx, {
+        sourceType: "client_sale",
+        sourceId: id,
+        transactionType: "income",
+        amount: amounts.paid_amount,
+        accountId: body.account_id,
+        transactedAt: body.sold_at || existing.sold_at,
+        description: `Savdodagi boshlang'ich to'lov #${id}`,
+        createdBy: actor.id,
       });
     }),
   );

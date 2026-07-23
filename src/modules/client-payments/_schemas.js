@@ -7,6 +7,7 @@ const idParams = Joi.object({
 const paymentFields = {
   client_id: Joi.number().integer().positive(),
   client_sale_id: Joi.number().integer().positive().allow(null, ""),
+  account_id: Joi.number().integer().positive().allow(null, ""),
   amount: Joi.number().precision(2).positive(),
   paid_at: Joi.date().iso(),
   note: Joi.string().trim().allow(null, ""),

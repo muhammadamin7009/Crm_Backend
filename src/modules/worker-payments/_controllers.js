@@ -78,9 +78,11 @@ const getWorkerPayment = async (req, res, next) => {
 const patchWorkerPayment = async (req, res, next) => {
   try {
     httpValidator({ body: req.body, params: req.params }, updateWorkerPaymentSchema);
-    const result = await updateWorkerPaymentService(req.body, {
-      id: Number(req.params.id),
-    });
+    const result = await updateWorkerPaymentService(
+      req.body,
+      { id: Number(req.params.id) },
+      req.user,
+    );
     res.status(200).json(result);
   } catch (error) {
     next(error);

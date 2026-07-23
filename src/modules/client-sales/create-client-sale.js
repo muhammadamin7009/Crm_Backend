@@ -2,6 +2,7 @@ const db = require("../../db");
 const { calculateSaleAmounts, getClient, getProduct } = require("./helpers");
 const { getFormattedSale } = require("./format-sale");
 const inventory = require("../inventory/_services");
+const { syncCashTransaction } = require("../../shared/finance/cash-ledger");
 
 const createClientSale = async (body, actor) => {
   const id = await db.transaction((trx) =>
@@ -36,6 +37,16 @@ const createClientSale = async (body, actor) => {
       await inventory.syncClientSaleStock(trx, createdId, actor, {
         occurredAt: body.sold_at || trx.fn.now(),
         note: `Mijozga yangi savdo #${createdId}`,
+      });
+      await syncCashTransaction(trx, {
+        sourceType: "client_sale",
+        sourceId: createdId,
+        transactionType: "income",
+        amount: amounts.paid_amount,
+        accountId: body.account_id,
+        transactedAt: body.sold_at,
+        description: `Savdodagi boshlang'ich to'lov #${createdId}`,
+        createdBy: actor.id,
       });
       return createdId;
     }),
